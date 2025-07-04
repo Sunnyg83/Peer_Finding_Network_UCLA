@@ -14,9 +14,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  coursesTaken: [{
-    type: String
-  }],
   coursesSeeking: [{
     type: String
   }],
