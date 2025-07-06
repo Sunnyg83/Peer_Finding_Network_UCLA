@@ -1,3 +1,4 @@
+// user model in mongoose to talk to mongoDB
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -18,6 +19,9 @@ const userSchema = new mongoose.Schema({
     type: String
   }],
   availability: {
+    type: String
+  },
+  year: {
     type: String
   }
 });

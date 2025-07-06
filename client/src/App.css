@@ -1,42 +1,338 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Dark purple gradient background */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #2d0036 0%, #3a185a 50%, #1a1a2e 100%);
+  min-height: 100vh;
+  color: #f3f3f3;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.app-header {
+  background: transparent;
+  padding: 2rem 0 1rem 0;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.app-header h1 {
+  color: #e0aaff;
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.app-header p {
+  color: #b8b8ff;
+  font-size: 1.1rem;
+}
+
+/* Main content */
+.app-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2rem 0;
+}
+
+/* Card UI for forms and dashboard */
+.auth-container, .dashboard {
+  background: rgba(24, 24, 38, 0.98);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.dashboard {
+  max-width: 700px;
+}
+
+/* Success alert bar */
+.success-alert {
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  color: #1a1a2e;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(67, 233, 123, 0.15);
+  letter-spacing: 0.5px;
+}
+
+/* Auth tabs */
+.auth-tabs {
+  display: flex;
+  margin-bottom: 2rem;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.tab {
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  background: #23233b;
+  color: #b8b8ff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab.active {
+  background: linear-gradient(90deg, #a4508b 0%, #5f0a87 100%);
+  color: #fff;
+}
+
+.tab:hover:not(.active) {
+  background: #2d0036;
+}
+
+/* Auth forms */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.auth-form h2 {
+  text-align: center;
+  color: #e0aaff;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #b8b8ff;
+  font-size: 0.95rem;
+}
+
+.form-group input {
+  padding: 0.75rem;
+  border: 2px solid #3a185a;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #181826;
+  color: #f3f3f3;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #a4508b;
+  box-shadow: 0 0 0 2px #a4508b44;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(90deg, #a4508b 0%, #5f0a87 100%);
+  color: #fff;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(164, 80, 139, 0.15);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(90deg, #5f0a87 0%, #a4508b 100%);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  background: #23233b;
+  color: #e0aaff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #3a185a;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Dashboard */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #23233b;
+}
+
+.dashboard-header h2 {
+  color: #e0aaff;
+  font-size: 1.6rem;
+}
+
+.user-info {
+  background: #23233b;
+  padding: 1.2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.user-info h3 {
+  color: #b8b8ff;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.user-info p {
+  margin-bottom: 0.5rem;
+  color: #f3f3f3;
+}
+
+.user-info strong {
+  color: #e0aaff;
+}
+
+/* Peer finding section */
+.peer-finding {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.peer-finding h3 {
+  color: #b8b8ff;
+  font-size: 1.1rem;
+}
+
+.peers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.peers-list h4 {
+  color: #e0aaff;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.peer-card {
+  background: #181826;
+  padding: 1.2rem;
+  border-radius: 12px;
+  border-left: 4px solid #a4508b;
+  transition: all 0.2s;
+  color: #f3f3f3;
+  box-shadow: 0 2px 8px rgba(90, 24, 90, 0.08);
+}
+
+.peer-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 4px 15px rgba(90, 24, 90, 0.15);
+}
+
+.peer-card h5 {
+  color: #e0aaff;
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.peer-card p {
+  margin-bottom: 0.5rem;
+  color: #f3f3f3;
+  font-size: 0.95rem;
+}
+
+.peer-card strong {
+  color: #b8b8ff;
+}
+
+/* Center the whole app vertically and horizontally */
+.centered-viewport {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #2d0036 0%, #3a185a 50%, #1a1a2e 100%);
+}
+
+.centered-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 420px;
+}
+
+.centered-header {
+  text-align: center;
+  margin-bottom: 2.2rem;
+  max-width: 420px;
+}
+
+.centered-header h1 {
+  color: #e0aaff;
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.centered-header p {
+  color: #b8b8ff;
+  font-size: 1.1rem;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .centered-header {
+    max-width: 95vw;
   }
-  to {
-    transform: rotate(360deg);
+  .centered-content,
+  .auth-container {
+    max-width: 98vw;
+    padding: 0 0.5rem;
   }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
 }
