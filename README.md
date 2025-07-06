@@ -1,7 +1,9 @@
 # Peer_Finding_Network_UCLA
 
 ![Login Page](client/screenshots/login.png)
+Login page MVP
 ![Register Page](client/screenshots/register.png)
+Register page MVP
 
 ## Getting Started
 
