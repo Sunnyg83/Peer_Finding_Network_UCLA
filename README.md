@@ -1,7 +1,9 @@
 # Peer_Finding_Network_UCLA
 
+![Login Page](client/screenshots/login.png)
+![Register Page](client/screenshots/register.png)
 
-## 🏁 Getting Started
+## Getting Started
 
 ### 1. Clone the repo
 ```bash
