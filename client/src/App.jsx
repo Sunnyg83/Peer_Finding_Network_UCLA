@@ -52,7 +52,7 @@ function LoginForm({ setIsLoggedIn, setCurrentUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:5000/api/users/login', {
+      const response = await fetch('http://127.0.0.1:5001/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,13 +105,18 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
     email: '',
     password: '',
     coursesSeeking: '',
-    availability: ''
+    availability: '',
+    year: ''
   })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:5000/api/users/register', {
+      console.log('Submitting registration:', {
+        ...formData,
+        coursesSeeking: formData.coursesSeeking.split(',').map(course => course.trim())
+      });
+      const response = await fetch('http://127.0.0.1:5001/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -212,7 +217,7 @@ function Dashboard({ currentUser, setIsLoggedIn }) {
   const findPeers = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:5000/api/users/peers', {
+      const response = await fetch('http://127.0.0.1:5001/api/users/peers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,6 +251,7 @@ function Dashboard({ currentUser, setIsLoggedIn }) {
         <p><strong>Email:</strong> {currentUser?.email}</p>
         <p><strong>Courses Seeking:</strong> {currentUser?.coursesSeeking?.join(', ')}</p>
         <p><strong>Availability:</strong> {currentUser?.availability}</p>
+        <p><strong>Year:</strong> {currentUser?.year}</p>
       </div>
 
       <div className="peer-finding">
