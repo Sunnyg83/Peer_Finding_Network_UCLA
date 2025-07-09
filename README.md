@@ -1,9 +1,17 @@
 # Peer_Finding_Network_UCLA
 
 ![Login Page](client/screenshots/login.png)
+
 Login page MVP
+
 ![Register Page](client/screenshots/register.png)
+
 Register page MVP
+
+![Dashboard Screenshot](client/screenshots/dashboard.png)
+
+User dashboard
+
 
 ## Getting Started
 
@@ -30,7 +38,7 @@ npm run dev
 
 ### 4. Open your browser
 - Frontend: [http://localhost:5173](http://localhost:5173)
-- Backend test route: [http://localhost:5000/api/test](http://localhost:5000/api/test)
+- Backend test route: [http://localhost:5001/api/test](http://localhost:5001/api/test)
 
 
 ---
