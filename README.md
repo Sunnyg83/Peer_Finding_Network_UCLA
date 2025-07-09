@@ -1,17 +1,13 @@
 # Peer_Finding_Network_UCLA
 
+Login page MVP
 ![Login Page](client/screenshots/login.png)
 
-Login page MVP
-
+Register page MVP
 ![Register Page](client/screenshots/register.png)
 
-Register page MVP
-
-![Dashboard Screenshot](client/screenshots/dashboard.png)
-
 User dashboard
-
+![Dashboard Screenshot](client/screenshots/dashboard.png)
 
 ## Getting Started
 
