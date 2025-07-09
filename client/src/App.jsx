@@ -123,6 +123,7 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
         },
         body: JSON.stringify({
           ...formData,
+          // split coursesSeeking into an array of courses
           coursesSeeking: formData.coursesSeeking.split(',').map(course => course.trim())
         }),
       })
@@ -273,6 +274,7 @@ function Dashboard({ currentUser, setIsLoggedIn }) {
                 <p><strong>Courses:</strong> {peer.coursesSeeking?.join(', ')}</p>
                 <p><strong>Availability:</strong> {peer.availability}</p>
                 <p><strong>Email:</strong> {peer.email}</p>
+                <p><strong>Year:</strong> {peer.year}</p>
               </div>
             ))}
           </div>

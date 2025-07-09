@@ -9,6 +9,9 @@ Register page MVP
 User dashboard
 ![Dashboard Screenshot](client/screenshots/dashboard.png)
 
+Peer finding
+![Peer finder](client/screenshots/peer.png)
+
 ## Getting Started
 
 ### 1. Clone the repo

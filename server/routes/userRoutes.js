@@ -42,7 +42,7 @@ router.post('/peers', async (req, res) => {
     const peers = await User.find({
       _id: { $ne: userId },
       coursesSeeking: { $in: coursesSeeking }
-    }).select('name email coursesSeeking availability');
+    }).select('name email coursesSeeking availability year');
     
     res.json({ peers });
   } catch (err) {
