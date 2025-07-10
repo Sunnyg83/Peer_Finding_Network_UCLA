@@ -20,7 +20,12 @@ const PORT = process.env.PORT || 5001;
 
 // Enhanced CORS middleware (explicit origin, methods, headers)
 const corsOptions = {
-  origin: ['http://127.0.0.1:5173', 'http://localhost:5173'],
+  origin: [
+    'http://127.0.0.1:5173', 
+    'http://localhost:5173',
+    'https://your-frontend-domain.vercel.app', // Add your Vercel domain here
+    'https://ucla-study-network.vercel.app' // Example domain
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

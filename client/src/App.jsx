@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import { API_URL } from './config'
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -52,7 +53,7 @@ function LoginForm({ setIsLoggedIn, setCurrentUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/users/login', {
+      const response = await fetch(`${API_URL}/api/users/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +117,7 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
         ...formData,
         coursesSeeking: formData.coursesSeeking.split(',').map(course => course.trim())
       });
-      const response = await fetch('http://127.0.0.1:5001/api/users/register', {
+      const response = await fetch(`${API_URL}/api/users/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -218,7 +219,7 @@ function Dashboard({ currentUser, setIsLoggedIn }) {
   const findPeers = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:5001/api/users/peers', {
+      const response = await fetch(`${API_URL}/api/users/peers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
