@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import { API_URL } from './config'
 
@@ -6,9 +6,35 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [activeTab, setActiveTab] = useState('login')
+  // track current theme
+  const [theme, setTheme] = useState('dark')
+
+  // Load default from storage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark'
+    setTheme(savedTheme)
+    document.documentElement.setAttribute('data-theme', savedTheme)
+  }, [])
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+  }
 
   return (
     <div className="centered-viewport">
+       {/* Toggle button logic */}
+      <button 
+        className="theme-toggle" 
+        onClick={toggleTheme}
+        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      >
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
+      
       <div className="centered-content">
         <div className="centered-header">
           <h1>UCLA Study Network</h1>
