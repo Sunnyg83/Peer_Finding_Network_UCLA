@@ -117,7 +117,10 @@ function LoginForm({ setIsLoggedIn, setCurrentUser }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          email: formData.email.toLowerCase()
+        }),
       })
       
       const data = await response.json()
@@ -174,6 +177,7 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
     try {
       console.log('Submitting registration:', {
         ...formData,
+        email: formData.email.toLowerCase(),
         coursesSeeking: formData.coursesSeeking.split(',').map(course => course.trim())
       });
       const response = await fetch(`${API_URL}/api/users/register`, {
@@ -183,7 +187,7 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
         },
         body: JSON.stringify({
           ...formData,
-          // split coursesSeeking into an array of courses
+          email: formData.email.toLowerCase(),
           coursesSeeking: formData.coursesSeeking.split(',').map(course => course.trim())
         }),
       })
