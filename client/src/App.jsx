@@ -8,6 +8,8 @@ function App() {
   const [activeTab, setActiveTab] = useState('login')
   // track current theme
   const [theme, setTheme] = useState('dark')
+  // Landing page state
+  const [showLanding, setShowLanding] = useState(true)
 
   // Load default from storage
   useEffect(() => {
@@ -22,6 +24,37 @@ function App() {
     setTheme(newTheme)
     localStorage.setItem('theme', newTheme)
     document.documentElement.setAttribute('data-theme', newTheme)
+  }
+
+  // Only show landing if not logged in and showLanding is true
+  if (!isLoggedIn && showLanding) {
+    return (
+      <div className="landing-viewport">
+        <button 
+          className="theme-toggle" 
+          onClick={toggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="landing-content">
+          <img src="/UCLA_Landing.jpeg" alt="UCLA Logo" className="ucla-logo" />
+          <h1 className="landing-title">Welcome to the UCLA Study Network</h1>
+          <p className="landing-subtitle">Find your perfect study partner, join groups, and ace your courses.<br/>Built by Bruins, for Bruins.</p>
+          <ul className="landing-features">
+            <li>🔍 Match with peers in your classes</li>
+            <li>🤝 Form or join study groups</li>
+            <li>📅 Share your availability</li>
+            <li>🌙 Beautiful dark & light mode</li>
+            <li>🚀 Easy to join, just enter your email!</li>
+          </ul>
+          <button className="get-started-btn" onClick={() => setShowLanding(false)}>
+            Get Started
+          </button>
+        </div>
+        <footer className="landing-footer">&copy; {new Date().getFullYear()} UCLA Study Network. All rights reserved.</footer>
+      </div>
+    )
   }
 
   return (

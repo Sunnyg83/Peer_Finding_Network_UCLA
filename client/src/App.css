@@ -406,3 +406,135 @@ body {
     padding: 0 0.5rem;
   }
 }
+
+.landing-viewport {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: var(--gradient-bg);
+  animation: fadeIn 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.landing-content {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 3.5rem 2vw 2.5rem 2vw;
+  max-width: none;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 2rem;
+  animation: popIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ucla-logo {
+  width: 120px;
+  margin-bottom: 1.5rem;
+  filter: drop-shadow(0 2px 12px #5f0a87aa);
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+}
+
+.landing-title {
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: #2774ae;
+  margin-bottom: 0.7rem;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 12px #a4508b22;
+}
+
+.landing-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.15rem;
+  margin-bottom: 1.7rem;
+  line-height: 1.5;
+}
+
+.landing-features {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 2.2rem;
+  color: var(--text-primary);
+  font-size: 1.08rem;
+  text-align: left;
+  width: 100%;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.landing-features li {
+  margin-bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 1.08rem;
+  letter-spacing: 0.1px;
+  padding-left: 0.2rem;
+}
+
+.get-started-btn {
+  background: linear-gradient(90deg, #2774ae 0%, #a4508b 100%);
+  color: #fff;
+  border: none;
+  padding: 1.1rem 2.5rem;
+  border-radius: 14px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(39, 116, 174, 0.15);
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.5px;
+  animation: bounceIn 1.2s;
+}
+.get-started-btn:hover {
+  background: linear-gradient(90deg, #a4508b 0%, #2774ae 100%);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 32px 0 var(--shadow-color);
+}
+
+.landing-footer {
+  color: var(--text-secondary);
+  font-size: 0.98rem;
+  margin-top: auto;
+  margin-bottom: 1.2rem;
+  text-align: center;
+  opacity: 0.85;
+}
+
+@media (max-width: 600px) {
+  .landing-content {
+    padding: 2rem 0.5rem 1.5rem 0.5rem;
+    max-width: none;
+    width: 100vw;
+  }
+  .ucla-logo {
+    width: 90px;
+  }
+  .landing-title {
+    font-size: 1.5rem;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes bounceIn {
+  0% { transform: scale(0.95); }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
