@@ -50,4 +50,29 @@ router.post('/peers', async (req, res) => {
   }
 });
 
+// Update user profile
+router.put('/:id', async (req, res) => {
+  console.log('PUT /api/users/:id hit!', req.params.id);
+  try {
+    const { coursesSeeking, availability, year, name } = req.body;
+    const updateFields = {};
+    if (coursesSeeking) updateFields.coursesSeeking = coursesSeeking;
+    if (availability) updateFields.availability = availability;
+    if (year) updateFields.year = year;
+    if (name) updateFields.name = name;
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id, 
+      { $set: updateFields },
+      { new: true, select: '-password' }
+    );
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ message: 'Profile updated', user });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router; 

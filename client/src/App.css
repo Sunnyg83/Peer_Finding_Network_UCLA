@@ -538,3 +538,35 @@ body {
   60% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
+
+/* Edit Profile */
+.edit-profile-form {
+  background: var(--card-bg, #222);
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 1.5rem;
+  max-width: 400px;
+}
+.edit-profile-form .form-group {
+  margin-bottom: 1rem;
+}
+.edit-profile-form label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+}
+.edit-profile-form input[type="text"] {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background: var(--input-bg, #fff);
+  color: var(--input-color, #222);
+}
+.edit-profile-form button {
+  margin-top: 0.5rem;
+}
+.edit-profile-form .btn-secondary {
+  margin-left: 10px;
+}

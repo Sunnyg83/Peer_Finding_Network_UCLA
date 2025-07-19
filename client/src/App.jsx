@@ -96,7 +96,7 @@ function App() {
             )}
           </div>
         ) : (
-          <Dashboard currentUser={currentUser} setIsLoggedIn={setIsLoggedIn} />
+          <Dashboard currentUser={currentUser} setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />
         )}
       </div>
     </div>
@@ -270,9 +270,10 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
   )
 }
 
-function Dashboard({ currentUser, setIsLoggedIn }) {
+function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
   const [peers, setPeers] = useState([])
   const [loading, setLoading] = useState(false)
+  const [editMode, setEditMode] = useState(false)
 
   const handleLogout = () => {
     setIsLoggedIn(false)
@@ -313,10 +314,22 @@ function Dashboard({ currentUser, setIsLoggedIn }) {
 
       <div className="user-info">
         <h3>Your Profile</h3>
-        <p><strong>Email:</strong> {currentUser?.email}</p>
-        <p><strong>Courses Seeking:</strong> {currentUser?.coursesSeeking?.join(', ')}</p>
-        <p><strong>Availability:</strong> {currentUser?.availability}</p>
-        <p><strong>Year:</strong> {currentUser?.year}</p>
+        {editMode ? (
+          <EditProfileForm
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            setEditMode={setEditMode}
+            refreshPeers={findPeers}
+          />
+        ) : (
+          <>
+            <p><strong>Email:</strong> {currentUser?.email}</p>
+            <p><strong>Courses Seeking:</strong> {currentUser?.coursesSeeking?.join(', ')}</p>
+            <p><strong>Availability:</strong> {currentUser?.availability}</p>
+            <p><strong>Year:</strong> {currentUser?.year}</p>
+            <button onClick={() => setEditMode(true)} className="btn-primary" style={{marginTop: '10px'}}>Edit Profile</button>
+          </>
+        )}
       </div>
 
       <div className="peer-finding">
@@ -346,6 +359,79 @@ function Dashboard({ currentUser, setIsLoggedIn }) {
       </div>
     </div>
   )
+}
+
+function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeers }) {
+  const [formData, setFormData] = useState({
+    coursesSeeking: currentUser.coursesSeeking.join(', '),
+    availability: currentUser.availability,
+    year: currentUser.year,
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/users/${currentUser._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          coursesSeeking: formData.coursesSeeking.split(',').map(c => c.trim()),
+          availability: formData.availability,
+          year: formData.year,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setCurrentUser(data.user);
+        setEditMode(false);
+        refreshPeers(); // Refresh peer list
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      alert('Update failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="edit-profile-form">
+      <h3 style={{marginTop: 0}}>Edit Profile</h3>
+      <hr style={{margin: '0.5rem 0 1rem 0', border: 0, borderTop: '1px solid #eee'}} />
+      <div className="form-group">
+        <label>Courses Seeking (comma-separated):</label>
+        <input
+          type="text"
+          value={formData.coursesSeeking}
+          onChange={e => setFormData({ ...formData, coursesSeeking: e.target.value })}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label>Availability:</label>
+        <input
+          type="text"
+          value={formData.availability}
+          onChange={e => setFormData({ ...formData, availability: e.target.value })}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label>Year:</label>
+        <input
+          type="text"
+          value={formData.year}
+          onChange={e => setFormData({ ...formData, year: e.target.value })}
+          required
+        />
+      </div>
+      <button type="submit" className="btn-primary" disabled={loading}>Save</button>
+      <button type="button" className="btn-secondary" onClick={() => setEditMode(false)} disabled={loading} style={{marginLeft: '10px'}}>Cancel</button>
+    </form>
+  );
 }
 
 export default App
