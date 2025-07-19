@@ -274,6 +274,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
   const [peers, setPeers] = useState([])
   const [loading, setLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
 
   const handleLogout = () => {
     setIsLoggedIn(false)
@@ -282,6 +283,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
 
   const findPeers = async () => {
     setLoading(true)
+    setHasSearched(true)
     try {
       const response = await fetch(`${API_URL}/api/users/peers`, {
         method: 'POST',
@@ -305,6 +307,11 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
     }
   }
 
+  const clearPeers = () => {
+    setPeers([])
+    setHasSearched(false)
+  }
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
@@ -320,6 +327,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
             setCurrentUser={setCurrentUser}
             setEditMode={setEditMode}
             refreshPeers={findPeers}
+            clearPeers={clearPeers}
           />
         ) : (
           <>
@@ -342,26 +350,33 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
           {loading ? 'Finding Peers...' : 'Find Peers'}
         </button>
 
-        {peers.length > 0 && (
-          <div className="peers-list">
-            <h4>Potential Study Partners:</h4>
-            {peers.map((peer, index) => (
-              <div key={index} className="peer-card">
-                <h5>{peer.name}</h5>
-                <p><strong>Courses:</strong> {peer.coursesSeeking?.join(', ')}</p>
-                <p><strong>Availability:</strong> {peer.availability}</p>
-                <p><strong>Email:</strong> {peer.email}</p>
-                <p><strong>Year:</strong> {peer.year}</p>
-              </div>
-            ))}
-          </div>
+        {hasSearched && (
+          peers.length > 0 ? (
+            <div className="peers-list">
+              <h4>Potential Study Partners:</h4>
+              {peers.map((peer, index) => (
+                <div key={index} className="peer-card">
+                  <h5>{peer.name}</h5>
+                  <p><strong>Courses:</strong> {peer.coursesSeeking?.join(', ')}</p>
+                  <p><strong>Availability:</strong> {peer.availability}</p>
+                  <p><strong>Email:</strong> {peer.email}</p>
+                  <p><strong>Year:</strong> {peer.year}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Only show message if no peers
+            <div style={{marginTop: '1.5rem', color: '#a4508b', textAlign: 'center', fontWeight: 500}}>
+              Oh no, unfortunately it looks like no one has registered for this class yet!
+            </div>
+          )
         )}
       </div>
     </div>
   )
 }
 
-function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeers }) {
+function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeers, clearPeers }) {
   const [formData, setFormData] = useState({
     coursesSeeking: currentUser.coursesSeeking.join(', '),
     availability: currentUser.availability,
@@ -386,7 +401,7 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
       if (response.ok) {
         setCurrentUser(data.user);
         setEditMode(false);
-        refreshPeers(); // Refresh peer list
+        clearPeers(); // Clear the peer list after update
       } else {
         alert(data.message);
       }
