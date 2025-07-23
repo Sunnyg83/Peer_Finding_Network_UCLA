@@ -1,42 +1,56 @@
 
 :root {
   /* Dark theme  */
-  --bg-primary: #2d0036;
-  --bg-secondary: #3a185a;
+  --bg-primary: #181826; /* almost black */
+  --bg-secondary: #23233b; /* dark blue */
   --bg-tertiary: #1a1a2e;
-  --bg-card: rgba(24, 24, 38, 0.98);
+  --bg-card: #23233b;
   --bg-input: #181826;
-  --bg-button: #23233b;
+  --bg-button: #2774ae; /* UCLA blue for contrast */
   --text-primary: #f3f3f3;
   --text-secondary: #b8b8ff;
-  --text-accent: #e0aaff;
-  --border-color: #3a185a;
+  --text-accent: #ffd100; /* UCLA gold */
+  --border-color: #2774ae;
   --border-light: #23233b;
-  --gradient-primary: linear-gradient(90deg, #a4508b 0%, #5f0a87 100%);
-  --gradient-secondary: linear-gradient(90deg, #5f0a87 0%, #a4508b 100%);
-  --gradient-bg: linear-gradient(135deg, #2d0036 0%, #3a185a 50%, #1a1a2e 100%);
-  --shadow-color: rgba(31, 38, 135, 0.25);
-  --focus-color: #a4508b44;
+  --gradient-primary: linear-gradient(90deg, #181826 0%, #2774ae 100%);
+  --gradient-secondary: linear-gradient(90deg, #2774ae 0%, #181826 100%);
+  --gradient-bg: linear-gradient(135deg, #181826 0%, #23233b 50%, #2774ae 100%);
+  --shadow-color: rgba(39, 116, 174, 0.18);
+  --focus-color: #ffd10044;
 }
 
-/* Light theme */
 [data-theme="light"] {
-  --bg-primary: #f8f9fa;
+  --bg-primary: #f9f6e7;
   --bg-secondary: #e9ecef;
   --bg-tertiary: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.98);
-  --bg-input: #f8f9fa;
-  --bg-button: #e9ecef;
+  --bg-card: #fffbe6;
+  --bg-input: #fff;
+  --bg-button: #2774ae;
   --text-primary: #212529;
-  --text-secondary: #6c757d;
-  --text-accent: #5f0a87;
-  --border-color: #dee2e6;
+  --text-secondary: #2774ae;
+  --text-accent: #ffd100;
+  --border-color: #222; /* dark border for inputs */
   --border-light: #e9ecef;
-  --gradient-primary: linear-gradient(90deg, #5f0a87 0%, #a4508b 100%);
-  --gradient-secondary: linear-gradient(90deg, #a4508b 0%, #5f0a87 100%);
-  --gradient-bg: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #ffffff 100%);
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --focus-color: #5f0a8722;
+  --gradient-primary: linear-gradient(90deg, #2774ae 0%, #ffd100 100%);
+  --gradient-secondary: linear-gradient(90deg, #ffd100 0%, #2774ae 100%);
+  --gradient-bg: linear-gradient(135deg, #f9f6e7 0%, #ffd100 50%, #2774ae 100%);
+  --shadow-color: rgba(39, 116, 174, 0.10);
+  --focus-color: #ffd10044;
+}
+
+[data-theme="light"] .form-group input,
+[data-theme="light"] .edit-profile-form input,
+[data-theme="light"] .auth-form input {
+  background: #fff;
+  color: #222;
+  border: 2px solid #222;
+}
+
+[data-theme="light"] .form-group input:focus,
+[data-theme="light"] .edit-profile-form input:focus,
+[data-theme="light"] .auth-form input:focus {
+  border-color: #2774ae;
+  box-shadow: 0 0 0 2px #ffd10044;
 }
 
 /* Reset and base styles */
@@ -569,4 +583,94 @@ body {
 }
 .edit-profile-form .btn-secondary {
   margin-left: 10px;
+}
+
+[data-theme="light"] .form-group label,
+[data-theme="light"] .edit-profile-form label,
+[data-theme="light"] .auth-form label {
+  color: #222;
+}
+
+[data-theme="light"] .form-group input::placeholder,
+[data-theme="light"] .edit-profile-form input::placeholder,
+[data-theme="light"] .auth-form input::placeholder {
+  color: #555;
+  opacity: 1;
+}
+
+[data-theme="light"] .user-info p,
+[data-theme="light"] .user-info strong,
+[data-theme="light"] .dashboard-header h2,
+[data-theme="light"] .dashboard-header p,
+[data-theme="light"] .peers-list h4,
+[data-theme="light"] .peer-card h5 {
+  color: #2774ae;
+}
+
+[data-theme="light"] .user-info h3,
+[data-theme="light"] .peer-finding h3 {
+  color: #222;
+}
+
+[data-theme="light"] .user-info strong,
+[data-theme="light"] .peer-card strong {
+  color: #222;
+}
+
+[data-theme="light"] .user-info p,
+[data-theme="light"] .peer-card p {
+  color: #222;
+}
+
+[data-theme="light"] .peer-card h5 {
+  color: #222;
+}
+
+[data-theme="light"] .peer-card:hover {
+  background: #fff;
+}
+
+[data-theme="light"] .centered-header h1 {
+  color: #2774ae;
+}
+
+/* Ensure both Login and Register buttons use the same .btn-primary style */
+.auth-form .btn-primary {
+  background: var(--gradient-primary);
+  color: #fff;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(39, 116, 174, 0.15);
+}
+
+.auth-form .btn-primary:hover {
+  background: var(--gradient-secondary);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.auth-form .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+[data-theme="light"] .auth-form .btn-primary {
+  color: #fff;
+}
+
+[data-theme="light"] .auth-tabs .tab {
+  background: #fff;
+  color: #2774ae;
+  border: 1px solid #2774ae;
+}
+
+[data-theme="light"] .auth-tabs .tab.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  border: none;
 }
