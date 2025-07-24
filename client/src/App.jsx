@@ -11,6 +11,8 @@ function App() {
   // Landing page state
   const [showLanding, setShowLanding] = useState(true)
 
+  const [chatPeer, setChatPeer] = useState(null)
+
   // Load default from storage
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'dark'
@@ -96,7 +98,16 @@ function App() {
             )}
           </div>
         ) : (
-          <Dashboard currentUser={currentUser} setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />
+          <Dashboard
+            currentUser={currentUser}
+            setIsLoggedIn={setIsLoggedIn}
+            setCurrentUser={setCurrentUser}
+            setChatPeer={setChatPeer} // Pass setter to Dashboard
+          />
+        )}
+        {/* Chat popup modal */}
+        {chatPeer && (
+          <ChatPopup peer={chatPeer} onClose={() => setChatPeer(null)} />
         )}
       </div>
     </div>
@@ -270,7 +281,7 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
   )
 }
 
-function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
+function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) {
   const [peers, setPeers] = useState([])
   const [loading, setLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -361,13 +372,20 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser }) {
                   <p><strong>Availability:</strong> {peer.availability}</p>
                   <p><strong>Email:</strong> {peer.email}</p>
                   <p><strong>Year:</strong> {peer.year}</p>
+                  <button
+                    className="btn-primary"
+                    style={{ marginTop: '0.7rem' }}
+                    onClick={() => setChatPeer(peer)}
+                  >
+                    Chat with {peer.name}
+                  </button>
                 </div>
               ))}
             </div>
           ) : (
             // Only show message if no peers
             <div style={{marginTop: '1.5rem', color: '#a4508b', textAlign: 'center', fontWeight: 500}}>
-              Oh no, unfortunately it looks like no one has registered for this class yet!
+              Oh no, unfortunately it looks like no one has registered for this class yet.
             </div>
           )
         )}
@@ -446,6 +464,21 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
       <button type="submit" className="btn-primary" disabled={loading}>Save</button>
       <button type="button" className="btn-secondary" onClick={() => setEditMode(false)} disabled={loading} style={{marginLeft: '10px'}}>Cancel</button>
     </form>
+  );
+}
+
+// Simple ChatPopup modal (UI only for now)
+function ChatPopup({ peer, onClose }) {
+  return (
+    <div className="chat-popup-overlay">
+      <div className="chat-popup-modal">
+        <button className="chat-popup-close" onClick={onClose}>&times;</button>
+        <h2 style={{marginBottom: '1.2rem'}}>Chat with {peer.name}</h2>
+        <div style={{marginTop: '2rem', color: '#888', textAlign: 'center', fontSize: '1.1rem'}}>
+          Chat UI coming soon...
+        </div>
+      </div>
+    </div>
   );
 }
 
