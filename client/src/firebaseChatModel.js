@@ -11,7 +11,8 @@ import {
   orderBy,
   onSnapshot,
   updateDoc,
-  doc
+  doc,
+  limit
 } from 'firebase/firestore';
 
 
@@ -96,7 +97,8 @@ export async function getUserConversations(userId) {
 export function listenForMessages(conversationId, callback) { // update UI with new messages
   const q = query(
     collection(db, 'conversations', conversationId, 'messages'),
-    orderBy('createdAt')
+    orderBy('createdAt'),
+    limit(50) // Only fetch the 50 most recent messages
   );
   return onSnapshot(q, (snapshot) => {
     const messages = snapshot.docs.map(doc => doc.data()); // convert to array (JS objs)
