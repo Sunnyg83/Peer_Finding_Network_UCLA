@@ -3,11 +3,23 @@
 This is the frontend for the UCLA Study Network, a web app to help Bruins find study partners, form groups, and ace their courses.
 
 ## Features
-- **Landing Page**: When you first visit the app, you'll see a welcoming landing page with information about the platform and a "Get Started" button.
-- **User Registration & Login**: After the landing page, you can sign up with your name, email, password, courses, availability, and year, or log in if you already have an account.
-- **Edit Profile**: After logging in, click "Edit Profile" to update your courses, availability, or year. Your changes will update your profile and affect your peer matches.
-- **Find Study Partners**: Click "Find Peers" to see a list of other students seeking the same courses. If no matches are found, a friendly message will appear.
-- **Dark/Light Mode**: Toggle between beautiful dark and light themes.
+- Landing Page with UCLA branding
+- User Registration & Login
+- Edit Profile (courses, availability, year)
+- Find Study Partners (peer matching)
+- **Real-Time Chat** (1-on-1 messaging)
+- **Unread Message Notifications** (red dot on messages icon)
+- Dark/Light Mode toggle
+
+## How Real-Time Chat Works
+- When you open a chat with another user, a real-time Firestore listener is set up for that conversation.
+- Any new messages sent by either user appear instantly in both users' chat windows—no refresh needed.
+- Messages are stored in Firestore under a `conversations` collection, with a `messages` subcollection for each conversation.
+
+## Unread Message Notifications
+- If you have unread messages, a red dot appears on the messages icon in the top right.
+- The unread count is updated on login, refresh, or after closing the chat/messages modal.
+- When you open a chat, all messages in that conversation are marked as read and the red dot disappears if there are no other unread messages.
 
 ## How to Run (Development)
 

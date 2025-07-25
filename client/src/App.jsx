@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import { API_URL } from './config'
+import { getOrCreateConversation, sendMessage, listenForMessages, getUserConversations, getUnreadCountForUser, markConversationAsRead } from './firebaseChatModel';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -10,8 +11,12 @@ function App() {
   const [theme, setTheme] = useState('dark')
   // Landing page state
   const [showLanding, setShowLanding] = useState(true)
+  const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null); // display chat window for selected conv
 
   const [chatPeer, setChatPeer] = useState(null)
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Load default from storage
   useEffect(() => {
@@ -19,6 +24,24 @@ function App() {
     setTheme(savedTheme)
     document.documentElement.setAttribute('data-theme', savedTheme)
   }, [])
+
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      getUserConversations(currentUser._id).then(setConversations);
+    }
+  }, [isLoggedIn, currentUser, showMessagesModal]); // update convs when logged in, current user, or modal is closed
+
+  // red dot state
+  // Fetch unread count on login, refresh, and modal is closed
+  useEffect(() => {
+    async function fetchUnread() {
+      if (isLoggedIn && currentUser) {
+        const count = await getUnreadCountForUser(currentUser._id);
+        setUnreadCount(count);
+      }
+    }
+    fetchUnread();
+  }, [isLoggedIn, currentUser, showMessagesModal, chatPeer]);
 
   // Toggle theme function
   const toggleTheme = () => {
@@ -69,7 +92,19 @@ function App() {
       >
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
-      
+      {/* Messages icon (top right) */}
+      {isLoggedIn && (
+        <button
+          className="messages-icon"
+          onClick={() => setShowMessagesModal(true)}
+          title="Messages"
+        >
+          <span role="img" aria-label="messages">💬</span>
+          {unreadCount > 0 && (
+            <span className="unread-dot" />
+          )}
+        </button>
+      )}
       <div className="centered-content">
         <div className="centered-header">
           <h1>UCLA Study Network</h1>
@@ -105,9 +140,31 @@ function App() {
             setChatPeer={setChatPeer} // Pass setter to Dashboard
           />
         )}
-        {/* Chat popup modal */}
+        {/* Chat popup modal (Chat + Messages react state vars) */}
         {chatPeer && (
-          <ChatPopup peer={chatPeer} onClose={() => setChatPeer(null)} />
+          <ChatPopup
+            peer={chatPeer}
+            currentUser={currentUser}
+            onClose={async () => {
+              setChatPeer(null);
+              // Re-fetch unread count after closing chat
+              if (currentUser) {
+                const count = await getUnreadCountForUser(currentUser._id);
+                setUnreadCount(count);
+              }
+            }}
+          />
+        )}
+        {showMessagesModal && (
+          <MessagesModal
+            conversations={conversations}
+            currentUser={currentUser}
+            onClose={() => setShowMessagesModal(false)}
+            onSelectConversation={(conv, peer) => {
+              setShowMessagesModal(false);
+              setChatPeer(peer);
+            }}
+          />
         )}
       </div>
     </div>
@@ -467,16 +524,178 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
   );
 }
 
-// Simple ChatPopup modal (UI only for now)
-function ChatPopup({ peer, onClose }) {
+function MessagesModal({ conversations, currentUser, onClose, onSelectConversation }) {
+  const [peerInfo, setPeerInfo] = useState({}); // { userId: { name, email } }
+  const [loadingPeers, setLoadingPeers] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchAllPeerInfo() {
+      setLoadingPeers(true);
+      const info = {};
+      for (const conv of conversations) {
+        const peerId = conv.users.find(id => id !== currentUser._id);
+        if (peerId && !info[peerId]) {
+          try {
+            const res = await fetch(`${API_URL}/api/users/${peerId}`);
+            if (res.ok) {
+              const data = await res.json();
+              info[peerId] = { name: data.user.name, email: data.user.email };
+            } else {
+              info[peerId] = { name: peerId, email: '' };
+            }
+          } catch {
+            info[peerId] = { name: peerId, email: '' };
+          }
+        }
+      }
+      if (isMounted) {
+        setPeerInfo(info);
+        setLoadingPeers(false);
+      }
+    }
+    fetchAllPeerInfo();
+    return () => { isMounted = false; };
+  }, [conversations, currentUser]);
+
+  // Only show one conversation per unique peer
+  const uniquePeers = {};
+  conversations.forEach(conv => {
+    const peerId = conv.users.find(id => id !== currentUser._id);
+    if (peerId && !uniquePeers[peerId]) {
+      uniquePeers[peerId] = conv; // change map to array
+    }
+  });
+  const uniqueConversations = Object.values(uniquePeers);
+
+  return (
+    <div className="chat-popup-overlay">
+      <div className="chat-popup-modal" style={{ minWidth: 320, minHeight: 200 }}>
+        <button className="chat-popup-close" onClick={onClose}>&times;</button>
+        <h2 style={{marginBottom: '1.2rem'}}>Your Messages</h2>
+        {uniqueConversations.length === 0 ? (
+          <div className="chat-empty">No conversations yet.</div>
+        ) : loadingPeers ? (
+          <div className="chat-loading">Loading names...</div>
+        ) : (
+          <div className="chat-messages-list">
+            {uniqueConversations.map((conv, idx) => {
+              const peerId = conv.users.find(id => id !== currentUser._id);
+              const peer = peerInfo[peerId] || { name: peerId, email: '' };
+              return (
+                <div key={conv.id}>
+                  <div
+                    className="chat-message"
+                    style={{ cursor: 'pointer', background: '#eee', color: '#222', marginBottom: 0 }}
+                    onClick={() => onSelectConversation(conv, { _id: peerId, name: peer.name, email: peer.email })}
+                  >
+                    <span className="chat-message-sender">{peer.name}</span>
+                    <span style={{ marginLeft: 8, fontSize: 12, color: '#888' }}>{peer.email}</span>
+                  </div>
+                  {idx < uniqueConversations.length - 1 && (
+                    <hr style={{ border: 'none', borderTop: '1px solid #ccc', margin: '8px 0' }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ChatPopup 
+function ChatPopup({ peer, currentUser, onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [conversationId, setConversationId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => { // conversation setup
+    let unsubscribe;
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+    getOrCreateConversation([currentUser._id, peer._id]) // run when new chat opened
+      .then(async id => {
+        if (!isMounted) return;
+        setConversationId(id);
+        // Mark all messages as read when opening chat
+        await markConversationAsRead(id, currentUser._id);
+        unsubscribe = listenForMessages(id, msgs => {
+          setMessages(msgs);
+          setLoading(false);
+        });
+      })
+      .catch(err => {
+        setError('Failed to load chat.');
+        setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [peer, currentUser]);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!input.trim() || !conversationId) return;
+    try {
+      await sendMessage(conversationId, currentUser._id, input.trim()); // send message to firebase
+      setInput('');
+    } catch (err) {
+      setError('Failed to send message.');
+    }
+  };
+
   return (
     <div className="chat-popup-overlay">
       <div className="chat-popup-modal">
         <button className="chat-popup-close" onClick={onClose}>&times;</button>
-        <h2 style={{marginBottom: '1.2rem'}}>Chat with {peer.name}</h2>
-        <div style={{marginTop: '2rem', color: '#888', textAlign: 'center', fontSize: '1.1rem'}}>
-          Chat UI coming soon...
+        <h2 style={{marginBottom: '1.2rem'}}>Chat with {peer.name || peer._id}</h2>
+        <div className="chat-messages-container">
+          {loading ? (
+            <div className="chat-loading">Loading messages...</div>
+          ) : error ? (
+            <div className="chat-error">{error}</div>
+          ) : (
+            <div className="chat-messages-list">
+              {messages.length === 0 ? (
+                <div className="chat-empty">No messages yet. Say hi!</div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={
+                      'chat-message' + (msg.senderId === currentUser._id ? ' chat-message-own' : '')
+                    }
+                  >
+                    <span className="chat-message-sender">
+                      {msg.senderId === currentUser._id ? 'You' : (peer.name || peer._id)}
+                    </span>
+                    <span className="chat-message-text">{msg.text}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
+        <form className="chat-input-form" onSubmit={handleSend} autoComplete="off">
+          <input
+            type="text"
+            className="chat-input"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Type your message..."
+            disabled={loading || !!error}
+            autoFocus
+          />
+          <button type="submit" className="chat-send-btn" disabled={loading || !!error || !input.trim()}>
+            Send
+          </button>
+        </form>
       </div>
     </div>
   );

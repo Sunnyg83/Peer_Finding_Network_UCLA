@@ -50,6 +50,19 @@ router.post('/peers', async (req, res) => {
   }
 });
 
+// Add GET /:id endpoint to fetch user info by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('name email');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 // Update user profile
 router.put('/:id', async (req, res) => {
   console.log('PUT /api/users/:id hit!', req.params.id);
