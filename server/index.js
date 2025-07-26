@@ -54,6 +54,24 @@ app.get('/api/test', (req, res) => {
 // use user routes
 app.use('/api/users', userRoutes);
 
-app.listen(PORT, () => {
+// Start server
+const server = app.listen(PORT, () => {
     console.log(`API available at: http://localhost:${PORT}/api/test`);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
+  });
 }); 
