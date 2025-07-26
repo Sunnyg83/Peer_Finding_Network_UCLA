@@ -1,6 +1,6 @@
 # Peer_Finding_Network_UCLA
 
-![Deployment Status](https://img.shields.io/badge/Status-Deployed%20on%20Render-green?style=for-the-badge&logo=render)
+![Deployment Status](https://img.shields.io/badge/Status-Deployed%20on%20Render-green?style=for-the-badge&logo=render) ![Frontend](https://img.shields.io/badge/Frontend-Deployed%20on%20Vercel-black?style=for-the-badge&logo=vercel)
 
 ## Project Overview
 The UCLA Peer-Finding Network is a full-stack web app that helps Bruins find study partners, form groups, and ace their courses. It features real-time chat, peer matching, profile management, and a modern, responsive UI with dark/light mode. The landing page is professionally designed with UCLA branding and highlights upcoming features.
