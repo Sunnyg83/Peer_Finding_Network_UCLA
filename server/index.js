@@ -42,9 +42,14 @@ app.use(express.json());
 // import user routes
 const userRoutes = require('./routes/userRoutes');
 
-// root health check for Railway
+// Railway health check - simple text response
 app.get('/', (req, res) => {
-  res.json({ message: 'Server is running!' });
+  res.status(200).send('OK');
+});
+
+// Railway health check - JSON response
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Server is healthy' });
 });
 
 // test route
@@ -57,7 +62,9 @@ app.use('/api/users', userRoutes);
 
 // Start server
 const server = app.listen(PORT, () => {
-    console.log(`API available at: http://localhost:${PORT}/api/test`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Health check: http://localhost:${PORT}/health`);
+    console.log(`API test: http://localhost:${PORT}/api/test`);
 });
 
 // Graceful shutdown handling
