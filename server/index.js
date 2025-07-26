@@ -18,23 +18,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-// Enhanced CORS middleware (explicit origin, methods, headers)
-const corsOptions = {
-  origin: [
-    'http://127.0.0.1:5173', 
-    'http://localhost:5173',
-    'https://peer-finding-network-ucla.vercel.app',
-    'https://peerfindingnetworkucla-production.up.railway.app',
-    'https://peerfindingnetworkucla.railway.app'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-app.use(cors(corsOptions));
-
-// Explicitly handle preflight OPTIONS requests
-app.options('*', cors(corsOptions));
+// CORS middleware
+app.use(cors());
 
 // json parser
 app.use(express.json());
@@ -42,44 +27,9 @@ app.use(express.json());
 // import user routes
 const userRoutes = require('./routes/userRoutes');
 
-// Railway health check - simple text response
-app.get('/', (req, res) => {
-  res.status(200).send('OK');
-});
-
-// Railway health check - JSON response
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'Server is healthy' });
-});
-
-// test route
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend is working!' });
-});
-
 // use user routes
 app.use('/api/users', userRoutes);
 
-// Start server
-const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-    console.log(`API test: http://localhost:${PORT}/api/test`);
-});
-
-// Graceful shutdown handling
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    console.log('Process terminated');
-    process.exit(0);
-  });
+app.listen(PORT, () => {
+    console.log(`API available at: http://localhost:${PORT}/api/test`);
 }); 
