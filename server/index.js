@@ -23,8 +23,9 @@ const corsOptions = {
   origin: [
     'http://127.0.0.1:5173', 
     'http://localhost:5173',
-    'https://peer-finding-network-ucla.vercel.app', 
-   
+    'https://peer-finding-network-ucla.vercel.app',
+    'https://peerfindingnetworkucla-production.up.railway.app',
+    'https://peerfindingnetworkucla.railway.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
