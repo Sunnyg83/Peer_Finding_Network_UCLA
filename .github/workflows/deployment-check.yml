@@ -1,0 +1,22 @@
+name: Deployment Status Check
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  check-deployment:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Check Render Deployment
+      run: |
+        # Check if backend is responding
+        curl -f https://peer-finding-network-ucla.onrender.com/api/test || exit 1
+        echo "✅ Backend is deployed and responding on Render"
+    
+    - name: Report Status
+      run: |
+        echo "Deployment status: SUCCESS"
+        echo "Backend URL: https://peer-finding-network-ucla.onrender.com" 
