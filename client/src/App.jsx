@@ -51,35 +51,159 @@ function App() {
     document.documentElement.setAttribute('data-theme', newTheme)
   }
 
+  // Landing page component
+  const LandingPage = () => {
+    const scrollToFeatures = () => {
+      document.getElementById('features-section').scrollIntoView({ 
+        behavior: 'smooth' 
+      });
+    };
+
+    return (
+      <div className="landing-container">
+        {/* Start/Hero Section */}
+        <section className="hero-section">
+          <div className="hero-content">
+            <h1 className="hero-title">Peer Network</h1>
+            <h2 className="hero-subtitle">Connect with UCLA Students in Your Classes</h2>
+            <p className="hero-description">
+              Struggling to find study partners? Need help understanding course material? 
+              Peer Network connects you with fellow UCLA students taking the same classes. 
+              Find study groups, get homework help, and make friends who share your academic journey.
+            </p>
+            <div className="cta-buttons">
+              <button className="cta-primary" onClick={() => setShowLanding(false)}>
+                Get Started Now
+              </button>
+              <button className="cta-secondary" onClick={scrollToFeatures}>
+                Learn More
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features-section" className="features-section">
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon">🎓</div>
+              <h3 className="feature-title">Find Study Partners</h3>
+              <p className="feature-description">
+                Connect with students in your exact classes. Find study groups, 
+                homework partners, and classmates who can help you succeed.
+              </p>
+            </div>
+            
+            <div className="feature-card">
+              <div className="feature-icon">💬</div>
+              <h3 className="feature-title">Real-Time Chat</h3>
+              <p className="feature-description">
+                Chat instantly with your study partners. Share notes, ask questions, 
+                and collaborate on assignments in real-time.
+              </p>
+            </div>
+            
+            <div className="feature-card">
+              <div className="feature-icon">🤝</div>
+              <h3 className="feature-title">Build Friendships</h3>
+              <p className="feature-description">
+                More than just study partners - make lasting friendships with 
+                students who share your academic interests and goals.
+              </p>
+            </div>
+            
+            <div className="feature-card">
+              <div className="feature-icon">⚡</div>
+              <h3 className="feature-title">Instant Matching</h3>
+              <p className="feature-description" style={{paddingBottom: '1.7rem'}}>
+                Get matched with compatible study partners instantly. No waiting, just direct connections.
+              </p>
+              <div style={{marginTop: '1rem'}}>
+                <span style={{background:'#FFD100', color:'#17408B', borderRadius: '8px', padding:'0.3em 0.8em', fontWeight:600, fontSize:'0.95rem', display:'inline-block'}}>
+                  Coming soon: Personalized study groups
+                </span>
+              </div>
+            </div>
+            
+            <div className="feature-card">
+              <div className="feature-icon">🔒</div>
+              <h3 className="feature-title">Safe & Secure</h3>
+              <p className="feature-description" style={{paddingBottom: '3.2rem'}}>
+                UCLA student verification <b>coming soon!</b> For now, anyone can join and connect.
+              </p>
+              <div style={{marginTop: '1rem'}}>
+                <span style={{background:'#FFD100', color:'#17408B', borderRadius: '8px', padding:'0.3em 0.8em', fontWeight:600, fontSize:'0.95rem', display:'inline-block'}}>
+                  Coming soon: UCLA student verification
+                </span>
+              </div>
+            </div>
+            
+            <div className="feature-card">
+              <div className="feature-icon">📱</div>
+              <h3 className="feature-title">Always Available</h3>
+              <p className="feature-description" style={{paddingBottom: '1.7rem'}}>
+                Access your study network anytime, anywhere. 
+                Perfect for late-night study sessions and last-minute questions.
+              </p>
+              <div style={{marginTop: '1rem'}}>
+                <span style={{background:'#FFD100', color:'#17408B', borderRadius: '8px', padding:'0.3em 0.8em', fontWeight:600, fontSize:'0.95rem', display:'inline-block'}}>
+                  Coming soon: Mobile app & notifications
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="stats-section">
+          <div className="stats-grid">
+            <div className="stat-item">
+              <div className="stat-number">24/7</div>
+              <div className="stat-label">Available</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="footer">
+          <p>© 2025 Peer Network. Connecting UCLA students, one class at a time.</p>
+        </footer>
+      </div>
+    );
+  };
+
   // Only show landing if not logged in and showLanding is true
   if (!isLoggedIn && showLanding) {
+    const isLight = theme === 'light';
     return (
-      <div className="landing-viewport">
+      <>
         <button 
           className="theme-toggle" 
           onClick={toggleTheme}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          style={{ 
+            position: 'fixed', 
+            top: 24, 
+            right: 24, 
+            zIndex: 1000,
+            background: isLight ? 'rgba(23, 64, 139, 0.85)' : 'rgba(255, 255, 255, 0.1)',
+            border: isLight ? '1px solid #17408B' : '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '50%',
+            width: '50px',
+            height: '50px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.2rem',
+            color: isLight ? '#fff' : undefined,
+            backdropFilter: 'blur(10px)'
+          }}
         >
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <div className="landing-content">
-          <img src="/UCLA_Landing.jpeg" alt="UCLA Logo" className="ucla-logo" />
-          <h1 className="landing-title">Welcome to the UCLA Study Network</h1>
-          <p className="landing-subtitle">Find your perfect study partner, join groups, and ace your courses.<br/>Built by Bruins, for Bruins.</p>
-          <ul className="landing-features">
-            <li>🔍 Match with peers in your classes</li>
-            <li>🤝 Form or join study groups</li>
-            <li>📅 Share your availability</li>
-            <li>🌙 Beautiful dark & light mode</li>
-            <li>🚀 Easy to join, just enter your email!</li>
-          </ul>
-          <button className="get-started-btn" onClick={() => setShowLanding(false)}>
-            Get Started
-          </button>
-        </div>
-        <footer className="landing-footer">&copy; {new Date().getFullYear()} UCLA Study Network. All rights reserved.</footer>
-      </div>
-    )
+        <LandingPage />
+      </>
+    );
   }
 
   return (

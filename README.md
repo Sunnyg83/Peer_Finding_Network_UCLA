@@ -1,7 +1,7 @@
 # Peer_Finding_Network_UCLA
 
 ## Project Overview
-The UCLA Peer-Finding Network is a full-stack web app that helps Bruins find study partners, (potentially) form groups, and ace their courses. It features real-time chat, peer matching, profile management, and a modern, responsive UI with dark/light mode.
+The UCLA Peer-Finding Network is a full-stack web app that helps Bruins find study partners, form groups, and ace their courses. It features real-time chat, peer matching, profile management, and a modern, responsive UI with dark/light mode. The landing page is professionally designed with UCLA branding and highlights upcoming features.
 
 ---
 
@@ -21,13 +21,15 @@ Peer finding
 ---
 
 ## Features
-- **Landing Page** with UCLA branding
+- **Professional Landing Page** with UCLA branding and clear feature highlights
+- **"Coming Soon" Badges** for future features (UCLA student verification, mobile app & notifications, personalized study groups)
 - **User Registration & Login**
 - **Edit Profile** (courses, availability, year)
 - **Find Study Partners** (peer matching by course)
 - **Real-Time Chat** (1-on-1 messaging, instant updates)
 - **Unread Message Notifications** (red dot on messages icon)
 - **Dark/Light Mode** toggle
+- **Responsive Design** for all devices
 
 ---
 
@@ -84,7 +86,6 @@ npm run dev
 
 ## Backend Setup - Server
 - The backend must be running for the app to work.
-- See `server/README.md` for backend setup instructions.
 - Make sure MongoDB is running and the backend is started (usually on port 5001).
 
 ---
