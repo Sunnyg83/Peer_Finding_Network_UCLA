@@ -41,6 +41,11 @@ app.use(express.json());
 // import user routes
 const userRoutes = require('./routes/userRoutes');
 
+// root health check for Railway
+app.get('/', (req, res) => {
+  res.json({ message: 'Server is running!' });
+});
+
 // test route
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!' });
