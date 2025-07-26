@@ -24,6 +24,11 @@ app.use(cors());
 // json parser
 app.use(express.json());
 
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'Backend is running!' });
+});
+
 // import user routes
 const userRoutes = require('./routes/userRoutes');
 

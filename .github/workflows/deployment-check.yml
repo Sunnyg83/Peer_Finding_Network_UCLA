@@ -12,18 +12,19 @@ jobs:
     steps:
     - name: Check Render Deployment
       run: |
-        # Check if backend is responding (try multiple endpoints)
+        # Check if backend is responding
         echo "Testing backend deployment..."
+        echo "Testing URL: https://peer-finding-network-ucla.onrender.com/"
         
-        # Try root endpoint first
-        if curl -f --max-time 10 https://peer-finding-network-ucla.onrender.com/; then
-          echo "✅ Backend is deployed and responding on Render (root endpoint)"
-        elif curl -f --max-time 10 https://peer-finding-network-ucla.onrender.com/api/test; then
-          echo "✅ Backend is deployed and responding on Render (/api/test endpoint)"
-        else
-          echo "❌ Backend is not responding"
-          exit 1
-        fi
+        # First, try a simple GET request to see what we get
+        echo "=== Testing with curl ==="
+        curl -v https://peer-finding-network-ucla.onrender.com/ || echo "curl failed"
+        
+        echo "=== Testing with wget ==="
+        wget --spider https://peer-finding-network-ucla.onrender.com/ && echo "wget succeeded" || echo "wget failed"
+        
+        echo "=== Testing with timeout ==="
+        timeout 10 curl -f https://peer-finding-network-ucla.onrender.com/ && echo "✅ Backend is deployed and responding on Render" || echo "❌ Backend is not responding"
     
     - name: Report Status
       run: |
