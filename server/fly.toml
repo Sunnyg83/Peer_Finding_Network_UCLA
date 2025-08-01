@@ -2,7 +2,7 @@ app = "peer-finding-network-ucla"
 primary_region = "lax"
 
 [build]
-  builder = "node"
+  dockerfile = "Dockerfile"
 
 [env]
   NODE_ENV = "production"

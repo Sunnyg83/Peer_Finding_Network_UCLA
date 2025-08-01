@@ -1,6 +1,6 @@
 # Peer_Finding_Network_UCLA
 
-![Deployment Status](https://img.shields.io/badge/Status-Deployed%20on%20Render-green?style=for-the-badge&logo=render) ![Frontend](https://img.shields.io/badge/Frontend-Deployed%20on%20Vercel-black?style=for-the-badge&logo=vercel)
+![Backend](https://img.shields.io/badge/Backend-Deployed%20on%20Fly.io-blue?style=for-the-badge&logo=fly) ![Frontend](https://img.shields.io/badge/Frontend-Deployed%20on%20Vercel-black?style=for-the-badge&logo=vercel)
 
 ---
 
