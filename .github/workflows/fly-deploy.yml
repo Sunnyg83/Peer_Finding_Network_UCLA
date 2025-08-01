@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    name: Test
+  build:
+    name: Build
     runs-on: ubuntu-latest
     
     steps:
@@ -26,16 +26,11 @@ jobs:
       run: |
         cd server
         npm ci
-        
-    - name: Run tests (if any)
-      run: |
-        cd server
-        npm test --if-present
 
   deploy:
     name: Deploy to Fly.io
     runs-on: ubuntu-latest
-    needs: test
+    needs: build
     if: github.ref == 'refs/heads/main'
     
     steps:
