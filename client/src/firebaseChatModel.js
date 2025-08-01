@@ -12,7 +12,9 @@ import {
   onSnapshot,
   updateDoc,
   doc,
-  limit
+  limit,
+  writeBatch,
+  getDoc
 } from 'firebase/firestore';
 
 
@@ -31,6 +33,8 @@ export async function getOrCreateConversation(userIds, groupName = null) { // fi
   const docRef = await addDoc(convRef, { 
     users: sortedUserIds,
     updatedAt: serverTimestamp(),
+    unreadCount: {},  // Track unread counts per user
+    lastMessage: null,
     ...(groupName && { groupName })
   });
   return docRef.id; // return new conv id
@@ -38,47 +42,117 @@ export async function getOrCreateConversation(userIds, groupName = null) { // fi
 
 
 export async function sendMessage(conversationId, senderId, text) { // send message
-  await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
+  const batch = writeBatch(db);
+  
+  // Add the message
+  const messageRef = doc(collection(db, 'conversations', conversationId, 'messages'));
+  batch.set(messageRef, {
     senderId,
     text,
     createdAt: serverTimestamp(),
     readBy: [senderId] // sender has read their own message
   });
-}
-
-// red dot code
-// mark all messages in a conv as read when opened
-export async function markConversationAsRead(conversationId, userId) {
-  const messagesRef = collection(db, 'conversations', conversationId, 'messages');
-  const snapshot = await getDocs(messagesRef);
-  const updates = [];
-  snapshot.forEach(msgDoc => {
-    const data = msgDoc.data();
-    if (!data.readBy || !data.readBy.includes(userId)) {
-      updates.push(updateDoc(doc(db, 'conversations', conversationId, 'messages', msgDoc.id), {
-        readBy: [...(data.readBy || []), userId]
-      }));
+  
+  // Update conversation metadata efficiently
+  const convRef = doc(db, 'conversations', conversationId);
+  const convDoc = await getDoc(convRef);
+  const convData = convDoc.data();
+  const users = convData.users || [];
+  
+  // Update unread counts for other users
+  const newUnreadCount = { ...(convData.unreadCount || {}) };
+  users.forEach(userId => {
+    if (userId !== senderId) {
+      newUnreadCount[userId] = (newUnreadCount[userId] || 0) + 1;
     }
   });
-  await Promise.all(updates);
+  
+  batch.update(convRef, {
+    updatedAt: serverTimestamp(),
+    lastMessage: text,
+    unreadCount: newUnreadCount
+  });
+  
+  await batch.commit();
 }
 
-// Count unread messages for a user in all conversations
+// red dot code - OPTIMIZED
+// mark all messages in a conv as read when opened
+export async function markConversationAsRead(conversationId, userId) {
+  // First, reset the unread count for this user in the conversation
+  const convRef = doc(db, 'conversations', conversationId);
+  await updateDoc(convRef, {
+    [`unreadCount.${userId}`]: 0
+  });
+  
+  // Only update messages that haven't been read by this user
+  // Use a more efficient query to get unread messages
+  const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+  const q = query(
+    messagesRef, 
+    where('readBy', 'not-in', [[userId]])  // Only get messages not read by this user
+  );
+  
+  try {
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const batch = writeBatch(db);
+      
+      snapshot.forEach(msgDoc => {
+        const data = msgDoc.data();
+        if (!data.readBy || !data.readBy.includes(userId)) {
+          batch.update(doc(db, 'conversations', conversationId, 'messages', msgDoc.id), {
+            readBy: [...(data.readBy || []), userId]
+          });
+        }
+      });
+      
+      await batch.commit();
+    }
+  } catch (error) {
+    // Fallback for complex queries that might not be supported
+    console.log('Using fallback read marking method');
+    const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+    const snapshot = await getDocs(messagesRef);
+    const batch = writeBatch(db);
+    let batchCount = 0;
+    
+    snapshot.forEach(msgDoc => {
+      const data = msgDoc.data();
+      if (!data.readBy || !data.readBy.includes(userId)) {
+        batch.update(doc(db, 'conversations', conversationId, 'messages', msgDoc.id), {
+          readBy: [...(data.readBy || []), userId]
+        });
+        batchCount++;
+        
+        // Firestore batch limit is 500 operations
+        if (batchCount >= 400) {
+          batch.commit();
+          batchCount = 0;
+        }
+      }
+    });
+    
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+  }
+}
+
+// Count unread messages for a user in all conversations - OPTIMIZED
 export async function getUnreadCountForUser(userId) {
   const convRef = collection(db, 'conversations');
   const q = query(convRef, where('users', 'array-contains', userId));
   const convSnapshot = await getDocs(q);
+  
   let totalUnread = 0;
-  for (const convDoc of convSnapshot.docs) {
-    const messagesRef = collection(db, 'conversations', convDoc.id, 'messages');
-    const msgSnapshot = await getDocs(messagesRef);
-    msgSnapshot.forEach(msgDoc => {
-      const data = msgDoc.data();
-      if (!data.readBy || !data.readBy.includes(userId)) {
-        totalUnread++;
-      }
-    });
-  }
+  convSnapshot.docs.forEach(convDoc => {
+    const data = convDoc.data();
+    const unreadCount = data.unreadCount || {};
+    totalUnread += unreadCount[userId] || 0;
+  });
+  
   return totalUnread;
 }
 // end red dot code
