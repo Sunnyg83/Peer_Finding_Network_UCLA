@@ -1,7 +1,8 @@
-app = "ucla-study-network-backend"
+app = "peer-finding-network-ucla"
 primary_region = "lax"
 
 [build]
+  builder = "node"
 
 [env]
   NODE_ENV = "production"
