@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
 import { API_URL } from './config'
 import { getOrCreateConversation, sendMessage, listenForMessages, getUserConversations, getUnreadCountForUser, markConversationAsRead } from './firebaseChatModel';
@@ -60,115 +61,228 @@ function App() {
     };
 
     return (
-      <div className="landing-container">
-        {/* Start/Hero Section */}
-        <section className="hero-section">
-          <div className="hero-content">
-            <h1 className="hero-title">Peer Network</h1>
-            <h2 className="hero-subtitle">Connect with UCLA Students in Your Classes</h2>
-            <p className="hero-description">
+              <motion.div 
+          className="landing-container"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Start/Hero Section */}
+          <motion.section 
+            className="hero-section"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+          >
+                      <div className="hero-content">
+              <motion.h1 
+                className="hero-title"
+                initial={{ y: -30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+              >
+              Peer Network
+            </motion.h1>
+              <motion.h2 
+                className="hero-subtitle"
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+              >
+              Connect with UCLA Students in Your Classes
+            </motion.h2>
+              <motion.p 
+                className="hero-description"
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+              >
               Struggling to find study partners? Need help understanding course material? 
               Peer Network connects you with fellow UCLA students taking the same classes. 
               Find study groups, get homework help, and make friends who share your academic journey.
-            </p>
-            <div className="cta-buttons">
-              <button className="cta-primary" onClick={() => setShowLanding(false)}>
+            </motion.p>
+              <motion.div 
+                className="cta-buttons"
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 1.0 }}
+              >
+                <motion.button 
+                  className="cta-primary" 
+                  onClick={() => setShowLanding(false)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                 Get Started Now
-              </button>
-              <button className="cta-secondary" onClick={scrollToFeatures}>
+              </motion.button>
+                <motion.button 
+                  className="cta-secondary" 
+                  onClick={scrollToFeatures}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                 Learn More
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Features Section */}
-        <section id="features-section" className="features-section">
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon">🎓</div>
-              <h3 className="feature-title">Find Study Partners</h3>
-              <p className="feature-description">
-                Connect with students in your exact classes. Find study groups, 
-                homework partners, and classmates who can help you succeed.
-              </p>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">💬</div>
-              <h3 className="feature-title">Real-Time Chat</h3>
-              <p className="feature-description">
-                Chat instantly with your study partners. Share notes, ask questions, 
-                and collaborate on assignments in real-time.
-              </p>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">🤝</div>
-              <h3 className="feature-title">Build Friendships</h3>
-              <p className="feature-description">
-                More than just study partners - make lasting friendships with 
-                students who share your academic interests and goals.
-              </p>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">⚡</div>
-              <h3 className="feature-title">Instant Matching</h3>
-              <p className="feature-description" style={{paddingBottom: '1.7rem'}}>
-                Get matched with compatible study partners instantly. No waiting, just direct connections.
-              </p>
-              <div style={{marginTop: '1rem'}}>
-                <span style={{background:'#FFD100', color:'#17408B', borderRadius: '8px', padding:'0.3em 0.8em', fontWeight:600, fontSize:'0.95rem', display:'inline-block'}}>
-                  Coming soon: Personalized study groups
-                </span>
-              </div>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">🔒</div>
-              <h3 className="feature-title">Safe & Secure</h3>
-              <p className="feature-description" style={{paddingBottom: '3.2rem'}}>
-                UCLA student verification <b>coming soon!</b> For now, anyone can join and connect.
-              </p>
-              <div style={{marginTop: '1rem'}}>
-                <span style={{background:'#FFD100', color:'#17408B', borderRadius: '8px', padding:'0.3em 0.8em', fontWeight:600, fontSize:'0.95rem', display:'inline-block'}}>
-                  Coming soon: UCLA student verification
-                </span>
-              </div>
-            </div>
-            
-            <div className="feature-card">
-              <div className="feature-icon">📱</div>
-              <h3 className="feature-title">Always Available</h3>
-              <p className="feature-description" style={{paddingBottom: '1.7rem'}}>
-                Access your study network anytime, anywhere. 
-                Perfect for late-night study sessions and last-minute questions.
-              </p>
-              <div style={{marginTop: '1rem'}}>
-                <span style={{background:'#FFD100', color:'#17408B', borderRadius: '8px', padding:'0.3em 0.8em', fontWeight:600, fontSize:'0.95rem', display:'inline-block'}}>
-                  Coming soon: Mobile app & notifications
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
+        <motion.section 
+          id="features-section" 
+          className="features-section"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+        >
+          <motion.div 
+            className="features-grid"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            {[
+              {
+                icon: "🎓",
+                title: "Find Study Partners",
+                description: "Connect with students in your exact classes. Find study groups, homework partners, and classmates who can help you succeed."
+              },
+              {
+                icon: "💬",
+                title: "Real-Time Chat",
+                description: "Chat instantly with your study partners. Share notes, ask questions, and collaborate on assignments in real-time."
+              },
+              {
+                icon: "🤝",
+                title: "Build Friendships",
+                description: "More than just study partners - make lasting friendships with students who share your academic interests and goals."
+              },
+              {
+                icon: "⚡",
+                title: "Instant Matching",
+                description: "Get matched with compatible study partners instantly. No waiting, just direct connections.",
+                comingSoon: "Coming soon: Personalized study groups"
+              },
+              {
+                icon: "🔒",
+                title: "Safe & Secure",
+                description: "UCLA student verification coming soon! For now, anyone can join and connect.",
+                comingSoon: "Coming soon: UCLA student verification"
+              },
+              {
+                icon: "📱",
+                title: "Always Available",
+                description: "Access your study network anytime, anywhere. Perfect for late-night study sessions and last-minute questions.",
+                comingSoon: "Coming soon: Mobile app & notifications"
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                className="feature-card"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                whileHover={{ 
+                  scale: 1.05,
+                  transition: { duration: 0.2 }
+                }}
+              >
+                <motion.div 
+                  className="feature-icon"
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  {feature.icon}
+                </motion.div>
+                <h3 className="feature-title">{feature.title}</h3>
+                <p className="feature-description" style={{paddingBottom: feature.comingSoon ? '1.7rem' : '0'}}>
+                  {feature.description}
+                </p>
+                {feature.comingSoon && (
+                  <motion.div 
+                    style={{marginTop: '1rem'}}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                    viewport={{ once: true }}
+                  >
+                    <span style={{
+                      background:'#FFD100', 
+                      color:'#17408B', 
+                      borderRadius: '8px', 
+                      padding:'0.3em 0.8em', 
+                      fontWeight:600, 
+                      fontSize:'0.95rem', 
+                      display:'inline-block'
+                    }}>
+                      {feature.comingSoon}
+                    </span>
+                  </motion.div>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.section>
 
         {/* Stats Section */}
-        <section className="stats-section">
-          <div className="stats-grid">
-            <div className="stat-item">
-              <div className="stat-number">24/7</div>
-              <div className="stat-label">Available</div>
-            </div>
-          </div>
-        </section>
+        <motion.section 
+          className="stats-section"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+        >
+          <motion.div 
+            className="stats-grid"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            <motion.div 
+              className="stat-item"
+              initial={{ scale: 0.8, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.1 }}
+            >
+              <motion.div 
+                className="stat-number"
+                initial={{ y: -20, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+                viewport={{ once: true }}
+              >
+                24/7
+              </motion.div>
+              <motion.div 
+                className="stat-label"
+                initial={{ y: 20, opacity: 0 }}
+                whileInView={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.8 }}
+                viewport={{ once: true }}
+              >
+                Available
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </motion.section>
 
         {/* Footer */}
-        <footer className="footer">
+        <motion.footer 
+          className="footer"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+        >
           <p>© 2025 Peer Network. Connecting UCLA students, one class at a time.</p>
-        </footer>
-      </div>
+        </motion.footer>
+      </motion.div>
     );
   };
 
@@ -177,7 +291,7 @@ function App() {
     const isLight = theme === 'light';
     return (
       <>
-        <button 
+        <motion.button 
           className="theme-toggle" 
           onClick={toggleTheme}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
@@ -198,24 +312,46 @@ function App() {
             color: isLight ? '#fff' : undefined,
             backdropFilter: 'blur(10px)'
           }}
+          whileHover={{ scale: 1.1, rotate: 180 }}
+          whileTap={{ scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 1.2 }}
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </button>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={theme}
+              initial={{ opacity: 0, rotate: -180 }}
+              animate={{ opacity: 1, rotate: 0 }}
+              exit={{ opacity: 0, rotate: 180 }}
+              transition={{ duration: 0.3 }}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
         <LandingPage />
       </>
     );
   }
 
   return (
-    <div className="centered-viewport">
+    <motion.div 
+      className="centered-viewport"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
        {/* Toggle button logic */}
-      <button 
+      <motion.button 
         className="theme-toggle" 
         onClick={toggleTheme}
         title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
       >
         {theme === 'dark' ? '☀️' : '🌙'}
-      </button>
+      </motion.button>
       {/* Messages icon (top right) */}
       {isLoggedIn && (
         <button
@@ -291,7 +427,7 @@ function App() {
           />
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -505,7 +641,12 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
   }
 
   return (
-    <div className="dashboard">
+    <motion.div 
+      className="dashboard"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="dashboard-header">
         <h2>Welcome, {currentUser?.name}!</h2>
         <button onClick={handleLogout} className="btn-secondary">Logout</button>
@@ -571,7 +712,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
           )
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 

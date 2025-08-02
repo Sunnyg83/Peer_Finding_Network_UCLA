@@ -36,6 +36,7 @@ Peer finding
 - **Unread Message Notifications** (red dot on messages icon)
 - **Dark/Light Mode** toggle
 - **Responsive Design** for all devices
+- **Framer Motion Animations** (smooth entrance, hover, and scroll-triggered animations)
 
 ---
 
