@@ -883,20 +883,30 @@ function ChatPopup({ peer, currentUser, onClose }) {
     let isMounted = true;
     setLoading(true);
     setError(null);
+    
+    console.log('Setting up chat for users:', currentUser._id, peer._id);
+    
     getOrCreateConversation([currentUser._id, peer._id]) // run when new chat opened
       .then(async id => {
         if (!isMounted) return;
+        console.log('Conversation ID:', id);
         setConversationId(id);
         // Mark all messages as read when opening chat
         await markConversationAsRead(id, currentUser._id);
         unsubscribe = listenForMessages(id, msgs => {
-          setMessages(msgs);
-          setLoading(false);
+          console.log('Received messages update:', msgs.length, 'messages');
+          if (isMounted) {
+            setMessages(msgs);
+            setLoading(false);
+          }
         });
       })
       .catch(err => {
-        setError('Failed to load chat.');
-        setLoading(false);
+        console.error('Error setting up chat:', err);
+        if (isMounted) {
+          setError('Failed to load chat.');
+          setLoading(false);
+        }
       });
     return () => {
       isMounted = false;
@@ -907,11 +917,17 @@ function ChatPopup({ peer, currentUser, onClose }) {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || !conversationId) return;
+    
+    const messageText = input.trim();
+    setInput(''); // Clear input immediately for better UX
+    
     try {
-      await sendMessage(conversationId, currentUser._id, input.trim()); // send message to firebase
-      setInput('');
+      console.log('Sending message:', messageText, 'to conversation:', conversationId);
+      await sendMessage(conversationId, currentUser._id, messageText); // send message to firebase
     } catch (err) {
+      console.error('Error sending message:', err);
       setError('Failed to send message.');
+      setInput(messageText); // Restore the message if sending failed
     }
   };
 
