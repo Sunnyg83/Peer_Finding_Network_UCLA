@@ -31,6 +31,7 @@ Peer finding
 - **"Coming Soon" Badges** for future features (UCLA student verification, mobile app & notifications, personalized study groups)
 - **User Registration & Login**
 - **Edit Profile** (courses, availability, year)
+- **Profile Picture Upload** (upload and display custom profile images)
 - **Find Study Partners** (peer matching by course)
 - **Real-Time Chat** (1-on-1 messaging, instant updates)
 - **Unread Message Notifications** (red dot on messages icon)

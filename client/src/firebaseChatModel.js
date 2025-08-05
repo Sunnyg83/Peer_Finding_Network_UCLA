@@ -82,7 +82,9 @@ export async function sendMessage(conversationId, senderId, text) { // send mess
   }
 }
 
-// red dot code - OPTIMIZED
+
+
+// red dot code 
 // mark all messages in a conv as read when opened
 export async function markConversationAsRead(conversationId, userId) {
   try {
@@ -108,7 +110,7 @@ export async function markConversationAsRead(conversationId, userId) {
         
         snapshot.forEach(msgDoc => {
           const data = msgDoc.data();
-          if (!data.readBy || !data.readBy.includes(userId)) {
+          if (!data.readBy || !data.readBy.includes(userId)) { // check if user has read msg
             batch.update(doc(db, 'conversations', conversationId, 'messages', msgDoc.id), {
               readBy: [...(data.readBy || []), userId]
             });

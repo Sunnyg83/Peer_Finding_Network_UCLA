@@ -664,7 +664,47 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
           />
         ) : (
           <>
-            <p><strong>Email:</strong> {currentUser?.email}</p>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+              <div style={{ position: 'relative', marginRight: '15px' }}>
+                <img 
+                  src={currentUser?.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE1IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgODBDMTAgNjUgMjAgNTUgMzUgNTVINjVDODAgNTUgOTAgNjUgOTAgODBWNzBIMFY4MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='}
+                  alt="Profile" 
+                  style={{
+                    width: '60px', 
+                    height: '60px', 
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                    border: '2px solid #ddd'
+                  }} 
+                />
+                <div 
+                  onClick={() => setEditMode(true)}
+                  style={{
+                    position: 'absolute',
+                    bottom: '-5px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#007bff',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#0056b3'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#007bff'}
+                >
+                  Edit me!
+                </div>
+              </div>
+              <div>
+                <h4 style={{ margin: '0 0 5px 0', color: '#000' }}>{currentUser?.name}</h4>
+                <p style={{ margin: '0', color: '#000', fontSize: '14px' }}>{currentUser?.email}</p>
+              </div>
+            </div>
             <p><strong>Courses Seeking:</strong> {currentUser?.coursesSeeking?.join(', ')}</p>
             <p><strong>Availability:</strong> {currentUser?.availability}</p>
             <p><strong>Year:</strong> {currentUser?.year}</p>
@@ -689,10 +729,26 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
               <h4>Potential Study Partners:</h4>
               {peers.map((peer, index) => (
                 <div key={index} className="peer-card">
-                  <h5>{peer.name}</h5>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+                    <img 
+                      src={peer.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE1IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgODBDMTAgNjUgMjAgNTUgMzUgNTVINjVDODAgNTUgOTAgNjUgOTAgODBWNzBIMFY4MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='}
+                      alt="Profile" 
+                      style={{
+                        width: '50px', 
+                        height: '50px', 
+                        objectFit: 'cover',
+                        borderRadius: '50%',
+                        border: '2px solid #ddd',
+                        marginRight: '15px'
+                      }} 
+                    />
+                    <div>
+                      <h5 style={{ margin: '0 0 5px 0', color: '#000' }}>{peer.name}</h5>
+                      <p style={{ margin: '0', color: '#000', fontSize: '14px' }}>{peer.email}</p>
+                    </div>
+                  </div>
                   <p><strong>Courses:</strong> {peer.coursesSeeking?.join(', ')}</p>
                   <p><strong>Availability:</strong> {peer.availability}</p>
-                  <p><strong>Email:</strong> {peer.email}</p>
                   <p><strong>Year:</strong> {peer.year}</p>
                   <button
                     className="btn-primary"
@@ -724,10 +780,51 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
   });
   const [loading, setLoading] = useState(false);
 
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(
+    currentUser.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE1IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgODBDMTAgNjUgMjAgNTUgMzUgNTVINjVDODAgNTUgOTAgNjUgOTAgODBWNzBIMFY4MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='
+  );
+
+  const handleImageChange = (e) => { 
+    const file = e.target.files[0]; // get selected file
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => setImagePreview(e.target.result) // convert to data URL so <img> can display 
+      reader.readAsDataURL(file);
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(currentUser.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE1IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgODBDMTAgNjUgMjAgNTUgMzUgNTVINjVDODAgNTUgOTAgNjUgOTAgODBWNzBIMFY4MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=');
+  }
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      let imageUrl = currentUser.imageUrl; // Keep existing image if no new one selected
+      
+      // Upload image if selected
+      if (selectedImage) {
+        const formData = new FormData();
+        formData.append('image', selectedImage);
+        
+        const uploadResponse = await fetch(`${API_URL}/api/users/upload-image`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          imageUrl = uploadData.imageUrl;
+        } else {
+          alert('Image upload failed.');
+          return;
+        }
+      }
+      
+      // Update profile with new data and image URL
       const response = await fetch(`${API_URL}/api/users/${currentUser._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -735,6 +832,7 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
           coursesSeeking: formData.coursesSeeking.split(',').map(c => c.trim()),
           availability: formData.availability,
           year: formData.year,
+          imageUrl: imageUrl
         }),
       });
       const data = await response.json();
@@ -782,6 +880,45 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
           onChange={e => setFormData({ ...formData, year: e.target.value })}
           required
         />
+      </div>
+      <div className="form-group">
+        <label>Profile Picture:</label>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+        />
+      </div>
+      
+      <div className="image-preview" style={{marginTop: '10px'}}>
+        <img 
+          src={imagePreview} 
+          alt="Profile" 
+          style={{
+            width: '100px', 
+            height: '100px', 
+            objectFit: 'cover',
+            borderRadius: '50%',
+            border: '2px solid #ddd'
+          }} 
+        />
+        {selectedImage && (
+          <button 
+            type="button" 
+            onClick={handleRemoveImage}
+            style={{
+              marginLeft: '10px',
+              padding: '5px 10px',
+              background: '#ff4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Remove
+          </button>
+        )}
       </div>
       <button type="submit" className="btn-primary" disabled={loading}>Save</button>
       <button type="button" className="btn-secondary" onClick={() => setEditMode(false)} disabled={loading} style={{marginLeft: '10px'}}>Cancel</button>

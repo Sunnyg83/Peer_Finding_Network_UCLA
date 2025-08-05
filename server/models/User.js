@@ -23,6 +23,9 @@ const userSchema = new mongoose.Schema({
   },
   year: {
     type: String
+  },
+  imageUrl: {
+    type: String
   }
 });
 

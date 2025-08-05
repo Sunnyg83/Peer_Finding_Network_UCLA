@@ -22,7 +22,11 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 
 // json parser
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Make uploaded images accessible to frontend via URLs 
+app.use('/uploads', express.static('uploads'));
 
 // Health check endpoint
 app.get('/', (req, res) => {

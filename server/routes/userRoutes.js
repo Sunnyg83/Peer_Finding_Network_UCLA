@@ -1,6 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const multer = require('multer');
+const upload = multer({ 
+  dest: 'uploads/',
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
 
 // Register a new user
 router.post('/register', async (req, res) => {
@@ -42,11 +49,25 @@ router.post('/peers', async (req, res) => {
     const peers = await User.find({
       _id: { $ne: userId },
       coursesSeeking: { $in: coursesSeeking }
-    }).select('name email coursesSeeking availability year');
+    }).select('name email coursesSeeking availability year imageUrl'); // include imageUrl to display profile pic of other users
     
     res.json({ peers });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+router.post('/upload-image', upload.single('image'), async(req,res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image uploaded' });
+    }
+    
+    // Return the full URL to access the image
+    const imageUrl = `https://peer-finding-network-ucla.fly.dev/uploads/${req.file.filename}`;
+    res.json({ imageUrl });
+  } catch (error) {
+    res.status(500).json({ message: 'Upload failed' });
   }
 });
 
@@ -67,12 +88,13 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   console.log('PUT /api/users/:id hit!', req.params.id);
   try {
-    const { coursesSeeking, availability, year, name } = req.body;
+    const { coursesSeeking, availability, year, name, imageUrl } = req.body;
     const updateFields = {};
     if (coursesSeeking) updateFields.coursesSeeking = coursesSeeking;
     if (availability) updateFields.availability = availability;
     if (year) updateFields.year = year;
     if (name) updateFields.name = name;
+    if (imageUrl) updateFields.imageUrl = imageUrl; 
 
     const user = await User.findByIdAndUpdate(
       req.params.id, 
