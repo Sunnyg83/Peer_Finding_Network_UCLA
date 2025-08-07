@@ -715,13 +715,57 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
 
       <div className="peer-finding">
         <h3>Find Study Partners</h3>
-        <button 
-          onClick={findPeers} 
-          className="btn-primary"
-          disabled={loading}
-        >
-          {loading ? 'Finding Peers...' : 'Find Peers'}
-        </button>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', width: '100%' }}>
+          <button 
+            onClick={findPeers} 
+            className="btn-primary"
+            disabled={loading}
+            style={{ 
+              flex: '1',  // Take up half the space
+              fontSize: '16px',  // Bigger font
+              padding: '12px 20px',  // More padding
+              height: 'auto',  // Match height
+              minHeight: '61px'  // Increased height
+            }}
+          >
+            {loading ? 'Finding Peers...' : 'Find Peers'}
+          </button>
+          
+          <button 
+            className="btn-primary"
+            disabled={true}
+            style={{ 
+              flex: '1',  // Take up half the space
+              fontSize: '16px',  // Bigger font
+              padding: '12px 20px',  // More padding
+              height: 'auto',  // Match height
+              minHeight: '61px',  // Same height as Find Peers
+              opacity: 0.6,
+              cursor: 'not-allowed',
+              position: 'relative'
+            }}
+            title="Coming soon!"
+          >
+            Find Study Group
+            <span style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              background: '#FFD100',
+              color: '#17408B',
+              borderRadius: '50%',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '10px',
+              fontWeight: 'bold'
+            }}>
+              🔒
+            </span>
+          </button>
+        </div>
 
         {hasSearched && (
           peers.length > 0 ? (
