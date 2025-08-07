@@ -368,7 +368,7 @@ function App() {
       <div className="centered-content">
         <div className="centered-header">
           <h1>UCLA Study Network</h1>
-          <p>Connect with study partners, form study groups, and ace your courses. Built by Bruins, for Bruins!</p>
+                          <p>Your study partner is just a click away.<br />Connect, collaborate, succeed.</p>
         </div>
         {!isLoggedIn ? (
           <div className="auth-container">
