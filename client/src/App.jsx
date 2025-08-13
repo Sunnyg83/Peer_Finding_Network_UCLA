@@ -603,6 +603,8 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
   const [loading, setLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [expandedBios, setExpandedBios] = useState({})
+  const [expandSelfBio, setExpandSelfBio] = useState(false)
 
   const handleLogout = () => {
     setIsLoggedIn(false)
@@ -705,6 +707,22 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
                 <p style={{ margin: '0', color: '#000', fontSize: '14px' }}>{currentUser?.email}</p>
               </div>
             </div>
+            {currentUser?.bio && (
+              <div style={{ margin: '8px 0', color: '#333', whiteSpace: 'pre-line' }}>
+                {expandSelfBio || currentUser.bio.length <= 160
+                  ? currentUser.bio
+                  : `${currentUser.bio.slice(0, 160)}...`}
+                {currentUser.bio.length > 160 && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandSelfBio(v => !v)}
+                    style={{ marginLeft: 6, background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', padding: 0 }}
+                  >
+                    {expandSelfBio ? 'Less' : 'More'}
+                  </button>
+                )}
+              </div>
+            )}
             <p><strong>Courses Seeking:</strong> {currentUser?.coursesSeeking?.join(', ')}</p>
             <p><strong>Availability:</strong> {currentUser?.availability}</p>
             <p><strong>Year:</strong> {currentUser?.year}</p>
@@ -715,6 +733,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
 
       <div className="peer-finding">
         <h3>Find Study Partners</h3>
+
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', width: '100%' }}>
           <button 
             onClick={findPeers} 
@@ -773,6 +792,22 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
               <h4>Potential Study Partners:</h4>
               {peers.map((peer, index) => (
                 <div key={index} className="peer-card">
+                  {peer.bio && (
+                    <div style={{ margin: 0, marginBottom: '10px', color: '#111', whiteSpace: 'pre-line' }}>
+                      {(expandedBios[peer._id] || peer.bio.length <= 160)
+                        ? peer.bio
+                        : `${peer.bio.slice(0, 160)}...`}
+                      {peer.bio.length > 160 && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setExpandedBios(prev => ({ ...prev, [peer._id]: !prev[peer._id] })); }}
+                          style={{ marginLeft: 6, background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', padding: 0 }}
+                        >
+                          {expandedBios[peer._id] ? 'Less' : 'More'}
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
                     <img 
                       src={peer.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE1IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgODBDMTAgNjUgMjAgNTUgMzUgNTVINjVDODAgNTUgOTAgNjUgOTAgODBWNzBIMFY4MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='}
@@ -821,6 +856,7 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
     coursesSeeking: currentUser.coursesSeeking.join(', '),
     availability: currentUser.availability,
     year: currentUser.year,
+    bio: currentUser.bio || ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -843,6 +879,9 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
     setSelectedImage(null);
     setImagePreview(currentUser.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE1IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgODBDMTAgNjUgMjAgNTUgMzUgNTVINjVDODAgNTUgOTAgNjUgOTAgODBWNzBIMFY4MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=');
   }
+  // simple sanitizer: strip HTML tags
+  const sanitizeText = (text) => (text || '').replace(/<[^>]*>/g, '');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -874,16 +913,20 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           coursesSeeking: formData.coursesSeeking.split(',').map(c => c.trim()),
-          availability: formData.availability,
-          year: formData.year,
-          imageUrl: imageUrl
+          availability: sanitizeText(formData.availability).slice(0, 160),
+          year: sanitizeText(formData.year).slice(0, 40),
+          imageUrl: imageUrl,
+          bio: sanitizeText(formData.bio).slice(0, 300)
         }),
       });
       const data = await response.json();
       if (response.ok) {
-        setCurrentUser(data.user);
+        const merged = data.user ? { ...data.user, bio: data.user.bio ?? formData.bio } : { ...currentUser, imageUrl, availability: formData.availability, year: formData.year, coursesSeeking: formData.coursesSeeking.split(',').map(c => c.trim()), bio: formData.bio };
+        setCurrentUser(merged);
         setEditMode(false);
-        clearPeers(); // Clear the peer list after update
+        if (typeof refreshPeers === 'function') {
+          refreshPeers();
+        }
       } else {
         alert(data.message);
       }
@@ -923,6 +966,15 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
           value={formData.year}
           onChange={e => setFormData({ ...formData, year: e.target.value })}
           required
+        />
+      </div>
+      <div className="form-group">
+        <label>Bio (optional):</label>
+        <textarea
+          rows="3"
+          value={formData.bio}
+          onChange={e => setFormData({ ...formData, bio: e.target.value })}
+          placeholder="Tell others about your classes, study style, goals..."
         />
       </div>
       <div className="form-group">

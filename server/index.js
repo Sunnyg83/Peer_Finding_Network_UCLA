@@ -25,9 +25,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Make uploaded images accessible to frontend via URLs 
-app.use('/uploads', express.static('uploads'));
-
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({ message: 'Backend is running!' });

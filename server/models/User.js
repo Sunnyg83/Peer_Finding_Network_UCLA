@@ -26,6 +26,9 @@ const userSchema = new mongoose.Schema({
   },
   imageUrl: {
     type: String
+  },
+  bio: {
+    type: String
   }
 });
 
