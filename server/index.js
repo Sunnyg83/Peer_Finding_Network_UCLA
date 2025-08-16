@@ -30,6 +30,8 @@ app.get('/', (req, res) => {
   res.json({ message: 'Backend is running!' });
 });
 
+
+
 // import user routes
 const userRoutes = require('./routes/userRoutes');
 

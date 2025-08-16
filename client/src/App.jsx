@@ -15,6 +15,8 @@ function App() {
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null); // display chat window for selected conv
+  
+
 
   const [chatPeer, setChatPeer] = useState(null)
   const [unreadCount, setUnreadCount] = useState(0);
@@ -51,6 +53,10 @@ function App() {
     localStorage.setItem('theme', newTheme)
     document.documentElement.setAttribute('data-theme', newTheme)
   }
+
+
+
+
 
   // Landing page component
   const LandingPage = () => {
@@ -342,6 +348,7 @@ function App() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
+
        {/* Toggle button logic */}
       <motion.button 
         className="theme-toggle" 
@@ -426,6 +433,8 @@ function App() {
             }}
           />
         )}
+        
+
       </div>
     </motion.div>
   )
@@ -605,6 +614,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
   const [hasSearched, setHasSearched] = useState(false)
   const [expandedBios, setExpandedBios] = useState({})
   const [expandSelfBio, setExpandSelfBio] = useState(false)
+  const [showStudyGroupOptions, setShowStudyGroupOptions] = useState(false)
 
   const handleLogout = () => {
     setIsLoggedIn(false)
@@ -736,7 +746,12 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
 
         <div style={{ display: 'flex', gap: '15px', alignItems: 'center', width: '100%' }}>
           <button 
-            onClick={findPeers} 
+            onClick={() => {
+              if (showStudyGroupOptions) {
+                setShowStudyGroupOptions(false);
+              }
+              findPeers();
+            }} 
             className="btn-primary"
             disabled={loading}
             style={{ 
@@ -751,42 +766,91 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
           </button>
           
           <button 
+            onClick={() => {
+              setShowStudyGroupOptions(!showStudyGroupOptions); // toggle
+              if (!showStudyGroupOptions) { // clear peer search when opening study groups
+                setPeers([]);
+                setHasSearched(false);
+              }
+            }}
             className="btn-primary"
-            disabled={true}
             style={{ 
               flex: '1',  // Take up half the space
               fontSize: '16px',  // Bigger font
               padding: '12px 20px',  // More padding
               height: 'auto',  // Match height
-              minHeight: '61px',  // Same height as Find Peers
-              opacity: 0.6,
-              cursor: 'not-allowed',
-              position: 'relative'
+              minHeight: '61px'  // Same height as Find Peers
             }}
-            title="Coming soon!"
           >
             Find Study Group
-            <span style={{
-              position: 'absolute',
-              top: '-8px',
-              right: '-8px',
-              background: '#FFD100',
-              color: '#17408B',
-              borderRadius: '50%',
-              width: '20px',
-              height: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '10px',
-              fontWeight: 'bold'
-            }}>
-              🔒
-            </span>
           </button>
         </div>
 
-        {hasSearched && (
+        {showStudyGroupOptions && (
+          <div style={{ 
+            marginTop: '20px', 
+            padding: '20px', 
+            border: '1px solid var(--border-light)', 
+            borderRadius: '8px',
+            background: 'var(--bg-card)'
+          }}>
+            <h4 style={{ marginBottom: '15px', textAlign: 'center', color: 'var(--text-primary)' }}>Study Group Options</h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <button 
+                className="btn-primary"
+                style={{ width: '100%', padding: '15px', fontSize: '16px' }}
+              >
+                Create Study Group
+              </button>
+              
+              <button 
+                className="btn-primary"
+                style={{ 
+                  width: '100%', 
+                  padding: '15px', 
+                  fontSize: '16px'
+                }}
+              >
+                See Existing Groups
+              </button>
+              
+              <button 
+                className="btn-primary"
+                disabled={true}
+                style={{ 
+                  width: '100%', 
+                  padding: '15px', 
+                  fontSize: '16px',
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  position: 'relative'
+                }}
+              >
+                Want Us to Decide?
+                <span style={{
+                  position: 'absolute',
+                  top: '-5px',
+                  right: '-5px',
+                  background: '#FFD100',
+                  color: '#17408B',
+                  borderRadius: '50%',
+                  width: '16px',
+                  height: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '8px',
+                  fontWeight: 'bold'
+                }}>
+                  🔒
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {hasSearched && !showStudyGroupOptions && (
           peers.length > 0 ? (
             <div className="peers-list">
               <h4>Potential Study Partners:</h4>
@@ -1214,5 +1278,7 @@ function ChatPopup({ peer, currentUser, onClose }) {
     </div>
   );
 }
+
+
 
 export default App
