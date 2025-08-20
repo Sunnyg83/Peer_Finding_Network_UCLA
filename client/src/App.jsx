@@ -4,6 +4,40 @@ import './App.css'
 import { API_URL } from './config'
 import { getOrCreateConversation, sendMessage, listenForMessages, getUserConversations, getUnreadCountForUser, markConversationAsRead } from './firebaseChatModel';
 
+// Particle Background Component
+const ParticleBackground = () => {
+  useEffect(() => {
+    const createParticles = () => {
+      const particleContainer = document.querySelector('.particle-background');
+      if (!particleContainer) return;
+      
+      // Clear existing particles
+      particleContainer.innerHTML = '';
+      
+      // Create particles
+      for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 6 + 's';
+        particle.style.animationDuration = (Math.random() * 3 + 4) + 's';
+        particleContainer.appendChild(particle);
+      }
+    };
+
+    createParticles();
+    
+    // Recreate particles on window resize
+    const handleResize = () => createParticles();
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return <div className="particle-background" />;
+};
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
@@ -297,6 +331,9 @@ function App() {
     const isLight = theme === 'light';
     return (
       <>
+        {/* Particle Background for Landing Page */}
+        <ParticleBackground />
+        
         <motion.button 
           className="theme-toggle" 
           onClick={toggleTheme}
@@ -348,6 +385,8 @@ function App() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
+      {/* Particle Background */}
+      <ParticleBackground />
 
        {/* Toggle button logic */}
       <motion.button 
@@ -782,7 +821,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
               minHeight: '61px'  // Same height as Find Peers
             }}
           >
-            Find Study Group
+            Find Study Groups
           </button>
         </div>
 
@@ -817,34 +856,29 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
               
               <button 
                 className="btn-primary"
-                disabled={true}
+                onClick={() => {
+                  // Ask user how many people they want in their study group
+                  const groupSize = prompt('How many other people would you like in your study group? (Enter a number between 1-10)');
+                  
+                  if (groupSize !== null) {
+                    const size = parseInt(groupSize);
+                    if (isNaN(size) || size < 1 || size > 10) {
+                      alert('Please enter a valid number between 1 and 10.');
+                      return;
+                    }
+                    
+                    // Now proceed with the study group matching
+                    alert(`Perfect! We'll find ${size} other students for your study group based on your classes and preferences.`);
+                  }
+                }}
                 style={{ 
                   width: '100%', 
                   padding: '15px', 
                   fontSize: '16px',
-                  opacity: 0.6,
-                  cursor: 'not-allowed',
-                  position: 'relative'
+                  cursor: 'pointer'
                 }}
               >
                 Want Us to Decide?
-                <span style={{
-                  position: 'absolute',
-                  top: '-5px',
-                  right: '-5px',
-                  background: '#FFD100',
-                  color: '#17408B',
-                  borderRadius: '50%',
-                  width: '16px',
-                  height: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '8px',
-                  fontWeight: 'bold'
-                }}>
-                  🔒
-                </span>
               </button>
             </div>
           </div>
@@ -1102,7 +1136,10 @@ function MessagesModal({ conversations, currentUser, onClose, onSelectConversati
             const res = await fetch(`${API_URL}/api/users/${peerId}`);
             if (res.ok) {
               const data = await res.json();
-              info[peerId] = { name: data.user.name, email: data.user.email };
+              info[peerId] = { 
+                name: data.user.name, 
+                email: data.user.email
+              };
             } else {
               info[peerId] = { name: peerId, email: '' };
             }
@@ -1125,38 +1162,35 @@ function MessagesModal({ conversations, currentUser, onClose, onSelectConversati
   conversations.forEach(conv => {
     const peerId = conv.users.find(id => id !== currentUser._id);
     if (peerId && !uniquePeers[peerId]) {
-      uniquePeers[peerId] = conv; // change map to array
+      uniquePeers[peerId] = conv;
     }
   });
   const uniqueConversations = Object.values(uniquePeers);
 
   return (
     <div className="chat-popup-overlay">
-      <div className="chat-popup-modal" style={{ minWidth: 320, minHeight: 200 }}>
+      <div className="chat-popup-modal">
         <button className="chat-popup-close" onClick={onClose}>&times;</button>
-        <h2 style={{marginBottom: '1.2rem'}}>Your Messages</h2>
+        <h2>Your Messages</h2>
         {uniqueConversations.length === 0 ? (
           <div className="chat-empty">No conversations yet.</div>
         ) : loadingPeers ? (
-          <div className="chat-loading">Loading names...</div>
+          <div className="chat-loading">Loading conversations...</div>
         ) : (
           <div className="chat-messages-list">
             {uniqueConversations.map((conv, idx) => {
               const peerId = conv.users.find(id => id !== currentUser._id);
               const peer = peerInfo[peerId] || { name: peerId, email: '' };
               return (
-                <div key={conv.id}>
-                  <div
-                    className="chat-message"
-                    style={{ cursor: 'pointer', background: '#eee', color: '#222', marginBottom: 0 }}
-                    onClick={() => onSelectConversation(conv, { _id: peerId, name: peer.name, email: peer.email })}
-                  >
-                    <span className="chat-message-sender">{peer.name}</span>
-                    <span style={{ marginLeft: 8, fontSize: 12, color: '#888' }}>{peer.email}</span>
+                <div
+                  key={conv.id}
+                  className="chat-message"
+                  onClick={() => onSelectConversation(conv, { _id: peerId, name: peer.name, email: peer.email })}
+                >
+                  <div className="chat-message-content">
+                    <div className="chat-message-sender">{peer.name}</div>
+                    <div className="chat-message-email">{peer.email}</div>
                   </div>
-                  {idx < uniqueConversations.length - 1 && (
-                    <hr style={{ border: 'none', borderTop: '1px solid #ccc', margin: '8px 0' }} />
-                  )}
                 </div>
               );
             })}
