@@ -149,8 +149,23 @@ router.post('/:id/join', async (req, res) => {
       return res.status(400).json({ message: 'Group is full' });
     }
     
+    // Get user info before adding them (for system message)
+    const joiningUser = await User.findById(userId);
+    const userName = joiningUser ? joiningUser.name : 'Unknown User';
+    
     group.members.push(userId);
     const updatedGroup = await group.save();
+    
+    // Send system message about member joining
+    try {
+      const { sendGroupSystemMessage } = require('../firebaseAdmin');
+      const conversationId = await getGroupConversationId(id);
+      if (conversationId) {
+        await sendGroupSystemMessage(conversationId, `${userName} joined the group`, 'join');
+      }
+    } catch (firebaseError) {
+      console.log('Firebase system message failed (will log instead):', firebaseError.message);
+    }
     
     res.json({ 
       message: 'Joined study group successfully', 
@@ -178,6 +193,10 @@ router.post('/:id/leave', async (req, res) => {
       return res.status(400).json({ message: 'User is not in this group' });
     }
     
+    // Get user info before removing them (for system message)
+    const leavingUser = await User.findById(userId);
+    const userName = leavingUser ? leavingUser.name : 'Unknown User';
+    
     // Remove user from members
     group.members = group.members.filter(memberId => memberId !== userId);
     
@@ -187,6 +206,18 @@ router.post('/:id/leave', async (req, res) => {
         // Transfer to the first remaining member
         group.creatorId = group.members[0];
         await group.save();
+        
+        // Send system message about ownership transfer
+        try {
+          const { sendGroupSystemMessage } = require('../firebaseAdmin');
+          const conversationId = await getGroupConversationId(id);
+          if (conversationId) {
+            await sendGroupSystemMessage(conversationId, `${userName} left the group. Ownership transferred to another member.`, 'ownership_transfer');
+          }
+        } catch (firebaseError) {
+          console.log('Firebase system message failed (will log instead):', firebaseError.message);
+        }
+        
         res.json({ 
           message: `Left group successfully. Ownership transferred to another member.`, 
           group: group 
@@ -202,6 +233,18 @@ router.post('/:id/leave', async (req, res) => {
     } else {
       // Regular member leaving
       await group.save();
+      
+      // Send system message about member leaving
+      try {
+        const { sendGroupSystemMessage } = require('../firebaseAdmin');
+        const conversationId = await getGroupConversationId(id);
+        if (conversationId) {
+          await sendGroupSystemMessage(conversationId, `${userName} left the group`, 'leave');
+        }
+      } catch (firebaseError) {
+        console.log('Firebase system message failed (will log instead):', firebaseError.message);
+      }
+      
       res.json({ 
         message: 'Left group successfully', 
         group: group 

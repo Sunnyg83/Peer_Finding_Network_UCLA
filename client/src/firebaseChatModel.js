@@ -41,6 +41,61 @@ export async function getOrCreateConversation(userIds, groupName = null) { // fi
     throw error;
   }
 }
+// Group conversation function
+export async function getOrCreateGroupConversation(groupId, groupName, memberIds) {
+  try {
+    const convRef = collection(db, 'conversations');
+    
+    // Check if group conversation already exists
+    const q = query(convRef, where('groupId', '==', groupId));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      return snapshot.docs[0].id; // Return existing conversation
+    }
+    
+    // Create new group conversation
+    const docRef = await addDoc(convRef, { 
+      users: memberIds,
+      groupId: groupId,
+      isGroup: true,
+      groupName: groupName,
+      updatedAt: serverTimestamp(),
+      unreadCount: {},
+      lastMessage: null
+    });
+    
+    return docRef.id;
+  } catch (error) {
+    console.error('Error in getOrCreateGroupConversation:', error);
+    throw error;
+  }
+}
+
+// Send system message for group events
+export async function sendGroupSystemMessage(conversationId, message, eventType = 'system') {
+  try {
+    const messageRef = doc(collection(db, 'conversations', conversationId, 'messages'));
+    await addDoc(collection(db, 'conversations', conversationId, 'messages'), {
+      senderId: 'system',
+      text: message,
+      createdAt: serverTimestamp(),
+      readBy: [],
+      eventType: eventType, // 'system', 'join', 'leave'
+      isSystemMessage: true
+    });
+    
+    // Update conversation metadata
+    const convRef = doc(db, 'conversations', conversationId);
+    await updateDoc(convRef, {
+      updatedAt: serverTimestamp(),
+      lastMessage: message
+    });
+  } catch (error) {
+    console.error('Error sending system message:', error);
+    throw error;
+  }
+}
 
 export async function sendMessage(conversationId, senderId, text) { // send message
   try {
@@ -179,6 +234,7 @@ export async function getUserConversations(userId) {
   try {
     const convRef = collection(db, 'conversations');
    
+    // Get ALL conversations (both individual and group) that the user is part of
     const q = query(convRef, where('users', 'array-contains', userId)); // all conv user is
     const snapshot = await getDocs(q); // execute + wait for results
     
@@ -217,5 +273,71 @@ export function listenForMessages(conversationId, callback) { // update UI with 
     console.error('Error setting up message listener:', error);
     // Return a dummy unsubscribe function
     return () => {};
+  }
+}
+
+// Update group members in conversation
+export async function updateGroupMembers(conversationId, newMemberIds, action, userName = null) {
+  try {
+    const convRef = doc(db, 'conversations', conversationId);
+    
+    // Update the users array
+    await updateDoc(convRef, {
+      users: newMemberIds,
+      updatedAt: serverTimestamp()
+    });
+    
+    // Send appropriate system message
+    let systemMessage = '';
+    if (action === 'join' && userName) {
+      systemMessage = `${userName} joined the group`;
+    } else if (action === 'leave' && userName) {
+      systemMessage = `${userName} left the group`;
+    } else if (action === 'remove' && userName) {
+      systemMessage = `${userName} was removed from the group`;
+    }
+    
+    if (systemMessage) {
+      await sendGroupSystemMessage(conversationId, systemMessage, action);
+    }
+    
+  } catch (error) {
+    console.error('Error updating group members:', error);
+    throw error;
+  }
+}
+
+// Get group conversations for a user
+export async function getUserGroupConversations(userId) {
+  try {
+    const convRef = collection(db, 'conversations');
+    const q = query(
+      convRef, 
+      where('users', 'array-contains', userId),
+      where('isGroup', '==', true)
+    );
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('Error getting user group conversations:', error);
+    return [];
+  }
+}
+
+// Get conversation ID for a specific group
+export async function getGroupConversationId(groupId) {
+  try {
+    const convRef = collection(db, 'conversations');
+    const q = query(convRef, where('groupId', '==', groupId));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      return snapshot.docs[0].id;
+    }
+    return null; // No conversation exists for this group
+  } catch (error) {
+    console.error('Error getting group conversation ID:', error);
+    return null;
   }
 } 

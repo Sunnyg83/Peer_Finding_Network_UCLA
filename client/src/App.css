@@ -1128,9 +1128,9 @@ body {
 }
 
 .messages-icon {
-  position: fixed;
-  top: 20px;
-  right: 80px;
+  position: fixed !important;
+  top: 20px !important;
+  right: 150px !important;
   background: var(--bg-button);
   color: var(--text-accent);
   border: 2px solid var(--border-color);
@@ -1147,9 +1147,9 @@ body {
 }
 
 .groups-icon {
-  position: fixed;
-  top: 20px;
-  right: 150px;
+  position: fixed !important;
+  top: 20px !important;
+  right: 80px !important;
   background: var(--bg-button);
   color: var(--text-accent);
   border: 2px solid var(--border-color);

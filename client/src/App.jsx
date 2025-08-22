@@ -2,7 +2,19 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './App.css'
 import { API_URL } from './config'
-import { getOrCreateConversation, sendMessage, listenForMessages, getUserConversations, getUnreadCountForUser, markConversationAsRead } from './firebaseChatModel';
+import { 
+  getOrCreateConversation, 
+  sendMessage, 
+  listenForMessages, 
+  getUserConversations, 
+  getUnreadCountForUser, 
+  markConversationAsRead,
+  getOrCreateGroupConversation,
+  getGroupConversationId,
+  getUserGroupConversations
+} from './firebaseChatModel';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 // Particle Background Component
 const ParticleBackground = () => {
@@ -58,10 +70,15 @@ function App() {
   const [availableGroups, setAvailableGroups] = useState([]);
   const [loadingAvailableGroups, setLoadingAvailableGroups] = useState(false);
   
-
+  // Group chat state
+  const [groupChatMessages, setGroupChatMessages] = useState([]);
+  const [groupConversationId, setGroupConversationId] = useState(null);
+  const [groupMessageInput, setGroupMessageInput] = useState('');
+  const [groupChatLoading, setGroupChatLoading] = useState(false);
 
   const [chatPeer, setChatPeer] = useState(null)
   const [unreadCount, setUnreadCount] = useState(0);
+  const [groupUnreadCount, setGroupUnreadCount] = useState(0);
 
   // Load default from storage
   useEffect(() => {
@@ -76,20 +93,173 @@ function App() {
     }
   }, [isLoggedIn, currentUser, showMessagesModal]); // update convs when logged in, current user, or modal is closed
 
+  // Set up real-time listener for group chat messages
+  useEffect(() => {
+    if (groupConversationId && showGroupChatModal) {
+      const unsubscribe = listenForMessages(groupConversationId, (messages) => {
+        setGroupChatMessages(messages);
+        
+        // Update unread count when new messages arrive
+        if (currentUser && messages.length > 0) {
+          getGroupChatUnreadCount(currentUser._id).then(setGroupUnreadCount);
+        }
+      });
+      
+      return () => unsubscribe();
+    }
+  }, [groupConversationId, showGroupChatModal, currentUser]);
+
+  // Get unread count for individual chats only (excluding group chats)
+  const getIndividualChatUnreadCount = async (userId) => {
+    try {
+      const allConversations = await getUserConversations(userId);
+      let totalUnread = 0;
+      
+      // Only count individual chats (where isGroup is not true)
+      allConversations.forEach(conv => {
+        if (!conv.isGroup) {
+          const unreadCount = conv.unreadCount?.[userId] || 0;
+          totalUnread += unreadCount;
+        }
+      });
+      
+      return totalUnread;
+    } catch (error) {
+      console.error('Error getting individual chat unread count:', error);
+      return 0;
+    }
+  };
+
+  // Get unread count for group chats
+  const getGroupChatUnreadCount = async (userId) => {
+    try {
+      const groupConversations = await getUserGroupConversations(userId);
+      let totalUnread = 0;
+      
+      groupConversations.forEach(conv => {
+        const unreadCount = conv.unreadCount?.[userId] || 0;
+        totalUnread += unreadCount;
+      });
+      
+      return totalUnread;
+    } catch (error) {
+      console.error('Error getting group chat unread count:', error);
+      return 0;
+    }
+  };
+
+  // Mark group chat messages as read
+  const markGroupChatAsRead = async (conversationId, userId) => {
+    try {
+      // Reset unread count for this user in the conversation
+      const convRef = doc(db, 'conversations', conversationId);
+      await updateDoc(convRef, {
+        [`unreadCount.${userId}`]: 0
+      });
+      
+      // Update local unread count
+      setGroupUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking group chat as read:', error);
+    }
+  };
+
+  // Update unread counts when conversations change
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      // Get individual chat unread count
+      getIndividualChatUnreadCount(currentUser._id).then(setUnreadCount);
+      
+      // Get group chat unread count
+      getGroupChatUnreadCount(currentUser._id).then(setGroupUnreadCount);
+    }
+  }, [isLoggedIn, currentUser, conversations, showMessagesModal, showGroupsModal]);
+
   // Open group chat
-  const openGroupChat = (group) => {
-    // Set the current group chat
-    setCurrentGroupChat({
-      id: `group_${group._id}`,
-      type: 'group',
-      name: group.name,
-      members: group.memberNames || group.members,
-      groupId: group._id
-    });
+  const openGroupChat = async (group) => {
+    try {
+      setGroupChatLoading(true);
+      
+      console.log('Opening group chat for group:', group); // Debug log
+      
+      // Ensure we have member names
+      let membersWithNames = group.members || [];
+      let memberNames = group.memberNames || [];
+      
+      // If we don't have memberNames, try to construct them
+      if (!memberNames.length && membersWithNames.length) {
+        memberNames = membersWithNames.map(memberId => ({
+          id: memberId,
+          name: memberId // Fallback to ID if no name
+        }));
+      }
+      
+      // Set the current group chat with proper member data
+      setCurrentGroupChat({
+        id: `group_${group._id}`,
+        type: 'group',
+        name: group.name,
+        members: memberNames, // Use memberNames instead of member IDs
+        memberNames: memberNames, // Keep this for consistency
+        groupId: group._id
+      });
+      
+      // Get or create Firebase conversation for this group
+      let conversationId = await getGroupConversationId(group._id);
+      
+      if (!conversationId) {
+        // Create new conversation if it doesn't exist
+        conversationId = await getOrCreateGroupConversation(
+          group._id,
+          group.name,
+          membersWithNames
+        );
+      }
+      
+      setGroupConversationId(conversationId);
+      
+      // Mark messages as read when opening group chat
+      if (currentUser) {
+        await markGroupChatAsRead(conversationId, currentUser._id);
+      }
+      
+      // Close the groups modal and open the group chat modal
+      setShowGroupsModal(false);
+      setShowGroupChatModal(true);
+      
+    } catch (error) {
+      console.error('Error opening group chat:', error);
+      alert('Failed to open group chat');
+    } finally {
+      setGroupChatLoading(false);
+    }
+  };
+
+  // Send group message
+  const sendGroupMessage = async () => {
+    if (!groupMessageInput.trim() || !groupConversationId || !currentUser) return;
     
-    // Close the groups modal and open the group chat modal
-    setShowGroupsModal(false);
-    setShowGroupChatModal(true);
+    try {
+      await sendMessage(groupConversationId, currentUser._id, groupMessageInput.trim());
+      setGroupMessageInput(''); // Clear input after sending
+    } catch (error) {
+      console.error('Error sending group message:', error);
+      alert('Failed to send message');
+    }
+  };
+
+  // Close group chat modal and clean up
+  const closeGroupChatModal = () => {
+    setShowGroupChatModal(false);
+    setCurrentGroupChat(null);
+    setGroupConversationId(null);
+    setGroupChatMessages([]);
+    setGroupMessageInput('');
+    
+    // Reset group unread count when modal is closed
+    if (currentUser) {
+      getGroupChatUnreadCount(currentUser._id).then(setGroupUnreadCount);
+    }
   };
 
   // Join a study group
@@ -102,10 +272,15 @@ function App() {
       });
 
       if (response.ok) {
-        alert('Successfully joined the study group!');
         // Refresh available groups and user groups
-        fetchAvailableGroups();
-        fetchUserGroups();
+        await fetchAvailableGroups();
+        await fetchUserGroups();
+        
+        // Firebase conversation will be automatically updated by the backend
+        // System message "X joined the group" will be sent automatically
+        console.log('Group joined successfully - backend will handle Firebase updates');
+        
+        alert('Successfully joined the group!');
       } else {
         const errorData = await response.json();
         alert(`Failed to join group: ${errorData.message}`);
@@ -126,10 +301,14 @@ function App() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        alert(data.message);
         // Refresh user groups
-        fetchUserGroups();
+        await fetchUserGroups();
+        
+        // Firebase conversation will be automatically updated by the backend
+        // System message "X left the group" will be sent automatically
+        console.log('Group left successfully - backend will handle Firebase updates');
+        
+        alert('Successfully left the group!');
       } else {
         const errorData = await response.json();
         alert(`Failed to leave group: ${errorData.message}`);
@@ -539,7 +718,19 @@ function App() {
         >
           <span role="img" aria-label="messages">💬</span>
           {unreadCount > 0 && (
-            <span className="unread-dot" />
+            <span 
+              style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                width: '12px',
+                height: '12px',
+                backgroundColor: '#ff4444',
+                borderRadius: '50%',
+                border: '2px solid var(--bg-primary)',
+                boxShadow: '0 0 5px #ff4444'
+              }}
+            />
           )}
         </button>
       )}
@@ -551,10 +742,30 @@ function App() {
           onClick={() => {
             setShowGroupsModal(true);
             fetchUserGroups(); // Fetch groups when modal opens
+            // Also refresh conversations to get latest unread counts
+            if (currentUser) {
+              getUserConversations(currentUser._id).then(setConversations);
+            }
           }}
           title="My Study Groups"
+          style={{ position: 'relative' }}
         >
           <span role="img" aria-label="study groups">👥</span>
+          {groupUnreadCount > 0 && (
+            <span 
+              style={{
+                position: 'absolute',
+                top: '-5px',
+                right: '-5px',
+                width: '12px',
+                height: '12px',
+                backgroundColor: '#ff4444',
+                borderRadius: '50%',
+                border: '2px solid var(--bg-primary)',
+                boxShadow: '0 0 5px #ff4444'
+              }}
+            />
+          )}
         </button>
       )}
       <div className="centered-content">
@@ -610,7 +821,7 @@ function App() {
               setChatPeer(null);
               // Re-fetch unread count after closing chat
               if (currentUser) {
-                const count = await getUnreadCountForUser(currentUser._id);
+                const count = await getIndividualChatUnreadCount(currentUser._id);
                 setUnreadCount(count);
               }
             }}
@@ -621,7 +832,17 @@ function App() {
             conversations={conversations}
             currentUser={currentUser}
             selectedConversation={selectedConversation}
-            onClose={() => setShowMessagesModal(false)}
+            // disappearing red dot if user reads messages
+            onClose={async () => {
+              setShowMessagesModal(false);
+              // Re-fetch unread counts after closing modal
+              if (currentUser) {
+                const individualCount = await getIndividualChatUnreadCount(currentUser._id);
+                const groupCount = await getGroupChatUnreadCount(currentUser._id);
+                setUnreadCount(individualCount);
+                setGroupUnreadCount(groupCount);
+              }
+            }}
             onSelectConversation={(conv, peer) => {
               if (conv.type === 'group') {
                 // For group chats, open group chat modal
@@ -695,7 +916,7 @@ function App() {
                   </p>
                 </div>
                 <button 
-                  onClick={() => setShowGroupChatModal(false)}
+                  onClick={closeGroupChatModal}
                   style={{
                     background: 'transparent',
                     border: '2px solid var(--neon-blue)',
@@ -737,17 +958,117 @@ function App() {
                 overflowY: 'auto',
                 minHeight: '300px'
               }}>
-                <div style={{
-                  color: '#888',
-                  textAlign: 'center',
-                  fontSize: '1.1rem',
-                  marginTop: '2rem'
-                }}>
-                  💬 Group chat coming soon!<br/>
-                  <span style={{ fontSize: '0.9rem' }}>
-                    Messages will appear here when the backend is ready.
-                  </span>
-                </div>
+               
+                {groupChatLoading ? (
+                  <div style={{
+                    color: 'var(--neon-blue)',
+                    textAlign: 'center',
+                    fontSize: '1.1rem',
+                    marginTop: '2rem'
+                  }}>
+                    🔄 Loading group chat...
+                  </div>
+                ) : groupChatMessages.length === 0 ? (
+                  <div style={{
+                    color: '#888',
+                    textAlign: 'center',
+                    fontSize: '1.1rem',
+                    marginTop: '2rem'
+                  }}>
+                    💬 No messages yet!<br/>
+                    <span style={{ fontSize: '0.9rem' }}>
+                      Start the conversation by sending a message.
+                    </span>
+                  </div>
+                ) : (
+                  <div>
+                    {groupChatMessages.map((message) => (
+                      <div key={message.id} style={{
+                        marginBottom: '1rem',
+                        padding: '0.8rem',
+                        borderRadius: '10px',
+                        background: message.senderId === 'system' 
+                          ? 'rgba(255, 193, 7, 0.1)' 
+                          : message.senderId === currentUser?._id 
+                            ? 'rgba(0, 123, 255, 0.2)' 
+                            : 'rgba(108, 117, 125, 0.2)',
+                        border: message.senderId === 'system' 
+                          ? '1px solid rgba(255, 193, 7, 0.5)' 
+                          : '1px solid rgba(108, 117, 125, 0.3)',
+                        maxWidth: message.senderId === currentUser?._id ? '80%' : '80%',
+                        marginLeft: message.senderId === currentUser?._id ? 'auto' : '0',
+                        marginRight: message.senderId === currentUser?._id ? '0' : 'auto'
+                      }}>
+                        {message.senderId === 'system' ? (
+                          <div style={{
+                            color: '#ffc107',
+                            fontSize: '0.9rem',
+                            fontStyle: 'italic',
+                            textAlign: 'center'
+                          }}>
+                            {message.text}
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{
+                              color: message.senderId === currentUser?._id 
+                                ? 'var(--neon-blue)' 
+                                : '#e8e8e8',
+                              fontSize: '0.8rem',
+                              marginBottom: '0.3rem',
+                              fontWeight: 'bold'
+                            }}>
+                              {message.senderId === currentUser?._id ? 'You' : 
+                                (() => {
+                                  // Debug logging
+                                  console.log('Finding name for senderId:', message.senderId);
+                                  console.log('Current group chat:', currentGroupChat);
+                                  console.log('Member names:', currentGroupChat.memberNames);
+                                  console.log('Members:', currentGroupChat.members);
+                                  
+                                  // Try to find the user name from memberNames array
+                                  const member = currentGroupChat.memberNames?.find(m => m.id === message.senderId) ||
+                                               currentGroupChat.memberNames?.find(m => m._id === message.senderId) ||
+                                               currentGroupChat.members?.find(m => m._id === message.senderId) ||
+                                               currentGroupChat.members?.find(m => m.id === message.senderId);
+                                  
+                                  console.log('Found member:', member);
+                                  
+                                  if (member) {
+                                    return member.name || member;
+                                  }
+                                  
+                                  // If still not found, try to get from currentUser if it's the same user
+                                  if (message.senderId === currentUser?._id) {
+                                    return 'You';
+                                  }
+                                  
+                                  // Last resort - show first few characters of ID
+                                  return message.senderId ? `User ${message.senderId.substring(0, 8)}...` : 'Unknown User';
+                                })()
+                              }
+                            </div>
+                            <div style={{
+                              color: '#e8e8e8',
+                              fontSize: '1rem',
+                              wordBreak: 'break-word'
+                            }}>
+                              {message.text}
+                            </div>
+                            <div style={{
+                              color: '#888',
+                              fontSize: '0.7rem',
+                              marginTop: '0.3rem',
+                              textAlign: 'right'
+                            }}>
+                              {message.createdAt ? new Date(message.createdAt).toLocaleTimeString() : ''}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Message Input */}
@@ -759,6 +1080,9 @@ function App() {
                 <input
                   type="text"
                   placeholder="Type your message..."
+                  value={groupMessageInput} // group chat input
+                  onChange={(e) => setGroupMessageInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendGroupMessage()}
                   style={{
                     flex: 1,
                     background: 'rgba(23, 23, 38, 0.8)',
@@ -768,21 +1092,33 @@ function App() {
                     color: '#e8e8e8',
                     fontSize: '1rem'
                   }}
-                  disabled
                 />
                 <button
+                  onClick={sendGroupMessage}
+                  disabled={!groupMessageInput.trim()} // send button code
                   style={{
-                    background: 'var(--neon-blue)',
-                    color: 'var(--bg-card)',
+                    background: groupMessageInput.trim() ? 'var(--neon-blue)' : 'rgba(108, 117, 125, 0.5)',
+                    color: groupMessageInput.trim() ? 'var(--bg-card)' : '#888',
                     border: 'none',
                     borderRadius: '10px',
                     padding: '0.8rem 1.5rem',
                     fontSize: '1rem',
                     fontWeight: 'bold',
-                    cursor: 'not-allowed',
-                    opacity: 0.5
+                    cursor: groupMessageInput.trim() ? 'pointer' : 'not-allowed', // pointer/no pointer logic if messgae exists
+                    transition: 'all 0.3s ease' // cool animation lol
                   }}
-                  disabled
+                  onMouseEnter={(e) => {
+                    if (groupMessageInput.trim()) {
+                      e.target.style.background = 'var(--neon-blue)';
+                      e.target.style.boxShadow = '0 0 15px var(--neon-blue)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (groupMessageInput.trim()) {
+                      e.target.style.background = 'var(--neon-blue)';
+                      e.target.style.boxShadow = 'none';
+                    }
+                  }} // glow over send button if message exists 
                 >
                   Send
                 </button>
@@ -941,12 +1277,53 @@ function App() {
                         <div style={{ flex: 1 }}>
                           <h3 style={{
                             color: 'var(--neon-blue)',
-                            margin: '0 0 0.5rem 0',
+                            margin: '0 0 1rem 0',
                             fontSize: '1.3rem',
                             textShadow: '0 0 5px var(--neon-blue)'
                           }}>
                             {group.name}
                           </h3>
+                          
+                          {/* New Messages Indicator - Only show if user is a member */}
+                          {(() => {
+                            // Only check for unread messages if user is actually IN this group
+                            if (group.members.includes(currentUser._id)) {
+                              const groupConversation = conversations.find(conv => 
+                                conv.groupId === group._id && conv.isGroup
+                              );
+                              const unreadCount = groupConversation?.unreadCount?.[currentUser._id] || 0;
+                              
+                              if (unreadCount > 0) {
+                                return (
+                                  <div style={{
+                                    background: 'rgba(255, 68, 68, 0.2)',
+                                    border: '1px solid #ff4444',
+                                    borderRadius: '8px',
+                                    padding: '0.5rem 0.8rem',
+                                    marginBottom: '1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                  }}>
+                                    <span style={{
+                                      color: '#ff4444',
+                                      fontSize: '1rem'
+                                    }}>
+                                      🔴
+                                    </span>
+                                    <span style={{
+                                      color: '#ff4444',
+                                      fontSize: '0.9rem',
+                                      fontWeight: 'bold'
+                                    }}>
+                                      New Messages
+                                    </span>
+                                  </div>
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
                           
                           <div style={{
                             display: 'flex',
@@ -1163,6 +1540,47 @@ function App() {
                         {group.name}
                       </h3>
                       
+                      {/* New Messages Indicator - Only show if user is a member */}
+                      {(() => {
+                        // Only check for unread messages if user is actually IN this group
+                        if (group.members.includes(currentUser._id)) {
+                          const groupConversation = conversations.find(conv => 
+                            conv.groupId === group._id && conv.isGroup
+                          );
+                          const unreadCount = groupConversation?.unreadCount?.[currentUser._id] || 0;
+                          
+                          if (unreadCount > 0) {
+                            return (
+                              <div style={{
+                                background: 'rgba(255, 68, 68, 0.2)',
+                                border: '1px solid #ff4444',
+                                borderRadius: '8px',
+                                padding: '0.5rem 0.8rem',
+                                marginBottom: '1rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
+                              }}>
+                                <span style={{
+                                  color: '#ff4444',
+                                  fontSize: '1rem'
+                                }}>
+                                  🔴
+                                </span>
+                                <span style={{
+                                  color: '#ff4444',
+                                  fontSize: '0.9rem',
+                                  fontWeight: 'bold'
+                                }}>
+                                  New Messages
+                                </span>
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
+                      
                       <div style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -1287,18 +1705,14 @@ function App() {
                               </span>
                             ))
                           ) : (
-                            group.members.map((memberId, memberIndex) => (
-                              <span key={memberIndex} style={{
-                                background: 'rgba(39, 116, 174, 0.3)',
-                                color: '#e8e8e8',
-                                padding: '0.3rem 0.6rem',
-                                borderRadius: '15px',
-                                fontSize: '0.8rem',
-                                border: '1px solid var(--neon-blue)'
-                              }}>
-                                {memberId === group.creatorId ? '👑 ' : ''}{memberId}
-                              </span>
-                            ))
+                            <div style={{
+                              color: '#888',
+                              fontSize: '0.9rem',
+                              textAlign: 'center',
+                              padding: '1rem'
+                            }}>
+                              Loading member names... {/*if names are not available yet, do this*/}
+                            </div>
                           )}
                         </div>
                       </div>
