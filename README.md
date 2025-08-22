@@ -84,17 +84,23 @@ npm run dev
 ---
 
 ## Configuration
-- By default, the frontend expects the backend at `http://127.0.0.1:5001`.
-- To change this, create a `.env` file in `client/` and set:
+- Frontend uses `client/src/config.js` which reads `VITE_API_URL` and falls back to `http://127.0.0.1:5001`.
+- Development (client/.env.local):
   ```
-  VITE_API_URL=http://localhost:5001
+  VITE_API_URL=http://127.0.0.1:5001
   ```
+- Production (client/.env.production):
+  ```
+  VITE_API_URL=<your-prod-backend-url>
+  ```
+- Rebuild the frontend after changing env: `npm run build` (or restart Vite in dev).
 
 ---
 
 ## Backend Setup - Server
 - The backend must be running for the app to work.
 - Make sure MongoDB is running and the backend is started (usually on port 5001).
+
 
 ---
 
@@ -103,6 +109,13 @@ npm run dev
 - **Edit Profile**: After updating your profile, the peer list will clear. Click "Find Peers" again to see updated matches.
 - **No Matches**: If no one is registered for your courses, you'll see a message instead of an empty list.
 - **Logout**: Click the "Logout" button in the dashboard header to sign out.
+
+### Study Groups (New)
+- **Create Study Group**: Choose a course from your `coursesSeeking`, select members, set max size, and create.
+- **My Groups**: Shows groups you belong to. From here you can:
+  - Open the group chat modal (UI ready; realtime messaging WIP).
+  - Leave a group (creator transfer/delete logic handled on the backend).
+- **See Existing Groups**: Lists available groups for all your courses, excluding groups you’re already in. You can request to join soon (auto join is in place right now)
 
 ---
 

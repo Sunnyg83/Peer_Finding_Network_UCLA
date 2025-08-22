@@ -30,13 +30,19 @@ app.get('/', (req, res) => {
   res.json({ message: 'Backend is running!' });
 });
 
-
+// Keep-alive health endpoint to prevent cold starts
+app.get('/health', (req, res) => res.status(200).send('OK'));
 
 // import user routes
 const userRoutes = require('./routes/userRoutes');
 
 // use user routes
 app.use('/api/users', userRoutes);
+
+const groupRoutes = require('./routes/groupRoutes');
+console.log('Registering group routes at /api/groups');
+app.use('/api/groups', groupRoutes);
+console.log('Group routes registered successfully!');
 
 app.listen(PORT, () => {
     console.log(`API available at: http://localhost:${PORT}/api/test`);

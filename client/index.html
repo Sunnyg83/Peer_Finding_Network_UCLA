@@ -7,7 +7,39 @@
     <title>Vite + React</title>
   </head>
   <body>
+    <!-- Particle background canvas -->
+    <div id="particles-js"></div>
+
+    <!-- React root -->
     <div id="root"></div>
+
     <script type="module" src="/src/main.jsx"></script>
+    <!-- particles.js library -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <!-- config for particles -->
+    <script>
+      particlesJS("particles-js", {
+        "particles": {
+          "number": { "value": 100 },
+          "size": { "value": 2 },
+          "color": { "value": "#00b3b3" },
+          "line_linked": {
+            "enable": true,
+            "distance": 150,
+            "color": "#00b3b3",
+            "opacity": 0.4,
+            "width": 1
+          },
+          "move": { "enable": true, "speed": 2 }
+        },
+        "interactivity": {
+          "events": {
+            "onhover": { "enable": true, "mode": "repulse" },
+            "onclick": { "enable": true, "mode": "push" }
+          }
+        },
+        "retina_detect": true
+      });
+    </script>
   </body>
 </html>

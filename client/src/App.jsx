@@ -8,7 +8,7 @@ import { getOrCreateConversation, sendMessage, listenForMessages, getUserConvers
 const ParticleBackground = () => {
   useEffect(() => {
     const createParticles = () => {
-      const particleContainer = document.querySelector('.particle-background');
+      const particleContainer = document.querySelector('#particles-js');
       if (!particleContainer) return;
       
       // Clear existing particles
@@ -35,7 +35,7 @@ const ParticleBackground = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  return <div className="particle-background" />;
+  return <div id="particles-js" />;
 };
 
 function App() {
@@ -49,6 +49,14 @@ function App() {
   const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null); // display chat window for selected conv
+  const [showGroupsModal, setShowGroupsModal] = useState(false);
+  const [userGroups, setUserGroups] = useState([]);
+  const [loadingGroups, setLoadingGroups] = useState(false);
+  const [showGroupChatModal, setShowGroupChatModal] = useState(false);
+  const [currentGroupChat, setCurrentGroupChat] = useState(null);
+  const [showBrowseGroupsModal, setShowBrowseGroupsModal] = useState(false);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [loadingAvailableGroups, setLoadingAvailableGroups] = useState(false);
   
 
 
@@ -67,6 +75,130 @@ function App() {
       getUserConversations(currentUser._id).then(setConversations);
     }
   }, [isLoggedIn, currentUser, showMessagesModal]); // update convs when logged in, current user, or modal is closed
+
+  // Open group chat
+  const openGroupChat = (group) => {
+    // Set the current group chat
+    setCurrentGroupChat({
+      id: `group_${group._id}`,
+      type: 'group',
+      name: group.name,
+      members: group.memberNames || group.members,
+      groupId: group._id
+    });
+    
+    // Close the groups modal and open the group chat modal
+    setShowGroupsModal(false);
+    setShowGroupChatModal(true);
+  };
+
+  // Join a study group
+  const joinGroup = async (groupId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser._id })
+      });
+
+      if (response.ok) {
+        alert('Successfully joined the study group!');
+        // Refresh available groups and user groups
+        fetchAvailableGroups();
+        fetchUserGroups();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to join group: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error joining group:', error);
+      alert('Failed to join group');
+    }
+  };
+
+  // Leave a study group
+  const leaveGroup = async (groupId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser._id })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message);
+        // Refresh user groups
+        fetchUserGroups();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to leave group: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error leaving group:', error);
+      alert('Failed to leave group');
+    }
+  };
+
+  // Fetch available groups for user's courses
+  const fetchAvailableGroups = async () => {
+    if (!currentUser || !currentUser.coursesSeeking) {
+      console.log('No currentUser or coursesSeeking');
+      return;
+    }
+    
+    console.log('Fetching groups for courses:', currentUser.coursesSeeking);
+    setLoadingAvailableGroups(true);
+    try {
+      // Get groups for each course the user is seeking
+      const allGroups = [];
+      
+      for (const course of currentUser.coursesSeeking) {
+        console.log('Fetching groups for course:', course);
+        const response = await fetch(`${API_URL}/api/groups/course/${encodeURIComponent(course)}`);
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Groups found for', course, ':', data.groups.length);
+          
+          // Filter out groups the user is already in
+          const availableForCourse = data.groups.filter(group => 
+            !group.members.includes(currentUser._id)
+          );
+          console.log('Available groups for', course, ':', availableForCourse.length);
+          allGroups.push(...availableForCourse);
+        } else {
+          console.log('Failed to fetch groups for course:', course);
+        }
+      }
+      
+      console.log('Total available groups:', allGroups.length);
+      setAvailableGroups(allGroups);
+    } catch (error) {
+      console.error('Error fetching available groups:', error);
+    } finally {
+      setLoadingAvailableGroups(false);
+    }
+  };
+
+  // Fetch user's study groups
+  const fetchUserGroups = async () => {
+    if (!currentUser) return;
+    
+    setLoadingGroups(true);
+    try {
+      const response = await fetch(`${API_URL}/api/groups/user/${currentUser._id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUserGroups(data.groups);
+      }
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
 
   // red dot state
   // Fetch unread count on login, refresh, and modal is closed
@@ -411,6 +543,20 @@ function App() {
           )}
         </button>
       )}
+      
+      {/* My Groups icon (top right, next to messages) */}
+      {isLoggedIn && (
+        <button
+          className="groups-icon"
+          onClick={() => {
+            setShowGroupsModal(true);
+            fetchUserGroups(); // Fetch groups when modal opens
+          }}
+          title="My Study Groups"
+        >
+          <span role="img" aria-label="study groups">👥</span>
+        </button>
+      )}
       <div className="centered-content">
         <div className="centered-header">
           <h1>UCLA Study Network</h1>
@@ -444,6 +590,15 @@ function App() {
             setIsLoggedIn={setIsLoggedIn}
             setCurrentUser={setCurrentUser}
             setChatPeer={setChatPeer} // Pass setter to Dashboard
+            showBrowseGroupsModal={showBrowseGroupsModal}
+            setShowBrowseGroupsModal={setShowBrowseGroupsModal}
+            availableGroups={availableGroups}
+            setAvailableGroups={setAvailableGroups}
+            loadingAvailableGroups={loadingAvailableGroups}
+            setLoadingAvailableGroups={setLoadingAvailableGroups}
+            fetchAvailableGroups={fetchAvailableGroups}
+            joinGroup={joinGroup}
+            leaveGroup={leaveGroup}
           />
         )}
         {/* Chat popup modal (Chat + Messages react state vars) */}
@@ -465,12 +620,694 @@ function App() {
           <MessagesModal
             conversations={conversations}
             currentUser={currentUser}
+            selectedConversation={selectedConversation}
             onClose={() => setShowMessagesModal(false)}
             onSelectConversation={(conv, peer) => {
-              setShowMessagesModal(false);
-              setChatPeer(peer);
+              if (conv.type === 'group') {
+                // For group chats, open group chat modal
+                setCurrentGroupChat(conv);
+                setShowGroupChatModal(true);
+                setShowMessagesModal(false);
+                setShowGroupsModal(false);
+              } else {
+                // For individual chats, open regular chat
+                setShowMessagesModal(false);
+                setShowGroupsModal(false);
+                setChatPeer(peer);
+              }
             }}
           />
+        )}
+
+        {/* Group Chat Modal */}
+        {showGroupChatModal && currentGroupChat && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'rgba(23, 23, 38, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '2px solid var(--neon-blue)',
+              borderRadius: '20px',
+              padding: '2rem',
+              width: '90%',
+              maxWidth: '800px',
+              height: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue)',
+              position: 'relative'
+            }}>
+              {/* Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1rem',
+                borderBottom: '1px solid var(--neon-blue)',
+                paddingBottom: '1rem'
+              }}>
+                <div>
+                  <h2 style={{
+                    color: 'var(--neon-blue)',
+                    margin: '0',
+                    fontSize: '1.5rem',
+                    textShadow: '0 0 10px var(--neon-blue)'
+                  }}>
+                    🏠 {currentGroupChat.name}
+                  </h2>
+                  <p style={{
+                    color: '#e8e8e8',
+                    margin: '0.5rem 0 0 0',
+                    fontSize: '0.9rem'
+                  }}>
+                    Members: {currentGroupChat.members.map(m => m.name || m).join(', ')}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowGroupChatModal(false)}
+                  style={{
+                    background: 'transparent',
+                    border: '2px solid var(--neon-blue)',
+                    color: 'var(--neon-blue)',
+                    borderRadius: '50%',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '1.2rem',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 0 10px var(--neon-blue)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'var(--neon-blue)';
+                    e.target.style.color = 'var(--bg-primary)';
+                    e.target.style.boxShadow = '0 0 15px var(--neon-blue), 0 0 25px var(--neon-blue)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'transparent';
+                    e.target.style.color = 'var(--neon-blue)';
+                    e.target.style.boxShadow = '0 0 10px var(--neon-blue)';
+                  }}
+                >
+                  &times;
+                </button>
+              </div>
+
+              {/* Chat Messages Area */}
+              <div style={{
+                flex: 1,
+                background: 'rgba(23, 23, 38, 0.6)',
+                border: '1px solid var(--neon-blue)',
+                borderRadius: '15px',
+                padding: '1rem',
+                marginBottom: '1rem',
+                overflowY: 'auto',
+                minHeight: '300px'
+              }}>
+                <div style={{
+                  color: '#888',
+                  textAlign: 'center',
+                  fontSize: '1.1rem',
+                  marginTop: '2rem'
+                }}>
+                  💬 Group chat coming soon!<br/>
+                  <span style={{ fontSize: '0.9rem' }}>
+                    Messages will appear here when the backend is ready.
+                  </span>
+                </div>
+              </div>
+
+              {/* Message Input */}
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                alignItems: 'center'
+              }}>
+                <input
+                  type="text"
+                  placeholder="Type your message..."
+                  style={{
+                    flex: 1,
+                    background: 'rgba(23, 23, 38, 0.8)',
+                    border: '1px solid var(--neon-blue)',
+                    borderRadius: '10px',
+                    padding: '0.8rem',
+                    color: '#e8e8e8',
+                    fontSize: '1rem'
+                  }}
+                  disabled
+                />
+                <button
+                  style={{
+                    background: 'var(--neon-blue)',
+                    color: 'var(--bg-card)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '0.8rem 1.5rem',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    cursor: 'not-allowed',
+                    opacity: 0.5
+                  }}
+                  disabled
+                >
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Browse Available Groups Modal */}
+        {console.log('showBrowseGroupsModal:', showBrowseGroupsModal)}
+        {showBrowseGroupsModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'rgba(23, 23, 38, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '2px solid var(--neon-blue)',
+              borderRadius: '20px',
+              padding: '2rem',
+              width: '90%',
+              maxWidth: '800px',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              boxShadow: '0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue)',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={() => setShowBrowseGroupsModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  background: 'transparent',
+                  border: '2px solid var(--neon-blue)',
+                  color: 'var(--neon-blue)',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 0 10px var(--neon-blue)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--neon-blue)';
+                  e.target.style.color = 'var(--bg-primary)';
+                  e.target.style.boxShadow = '0 0 15px var(--neon-blue), 0 0 25px var(--neon-blue)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = 'var(--neon-blue)';
+                  e.target.style.boxShadow = '0 0 10px var(--neon-blue)';
+                }}
+              >
+                &times;
+              </button>
+
+              <h2 style={{
+                color: 'var(--neon-blue)',
+                textAlign: 'center',
+                marginBottom: '1.5rem',
+                fontSize: '1.8rem',
+                textShadow: '0 0 10px var(--neon-blue)'
+              }}>
+                Available Study Groups
+              </h2>
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: '1rem'
+              }}>
+                <button
+                  onClick={fetchAvailableGroups}
+                  style={{
+                    background: 'var(--neon-blue)',
+                    color: 'var(--bg-card)',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '0.8rem 1.5rem',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 0 5px var(--neon-blue)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#0056b3';
+                    e.target.style.boxShadow = '0 0 8px var(--neon-blue)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'var(--neon-blue)';
+                    e.target.style.boxShadow = '0 0 5px var(--neon-blue)';
+                  }}
+                >
+                  🔄 Refresh Groups
+                </button>
+              </div>
+
+              {loadingAvailableGroups ? (
+                <div style={{
+                  color: '#888',
+                  textAlign: 'center',
+                  fontSize: '1.05rem',
+                  margin: '1.5rem 0'
+                }}>
+                  Loading available groups...
+                </div>
+              ) : availableGroups.length === 0 ? (
+                <div style={{
+                  color: '#888',
+                  textAlign: 'center',
+                  fontSize: '1.05rem',
+                  margin: '1.5rem 0'
+                }}>
+                  No available groups found for your courses.<br/>
+                  <span style={{ fontSize: '0.9rem' }}>
+                    Try creating your own study group!
+                  </span>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}>
+                  {availableGroups.map((group, index) => (
+                    <div key={index} style={{
+                      background: 'rgba(23, 23, 38, 0.6)',
+                      border: '1px solid var(--neon-blue)',
+                      borderRadius: '15px',
+                      padding: '1.5rem',
+                      boxShadow: '0 0 8px var(--neon-blue)',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        marginBottom: '1rem'
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <h3 style={{
+                            color: 'var(--neon-blue)',
+                            margin: '0 0 0.5rem 0',
+                            fontSize: '1.3rem',
+                            textShadow: '0 0 5px var(--neon-blue)'
+                          }}>
+                            {group.name}
+                          </h3>
+                          
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.5rem',
+                            marginBottom: '1rem'
+                          }}>
+                            <p style={{
+                              color: '#e8e8e8',
+                              margin: '0',
+                              fontSize: '0.9rem'
+                            }}>
+                              <strong>Course:</strong> {group.courses.join(', ')}
+                            </p>
+                            <p style={{
+                              color: '#e8e8e8',
+                              margin: '0',
+                              fontSize: '0.9rem'
+                            }}>
+                              <strong>Members:</strong> {group.members.length}/{group.maxMembers}
+                            </p>
+                            <p style={{
+                              color: '#e8e8e8',
+                              margin: '0',
+                              fontSize: '0.9rem'
+                            }}>
+                              <strong>Created:</strong> {new Date(group.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+
+                          {group.memberNames && (
+                            <div style={{
+                              background: 'rgba(23, 23, 38, 0.8)',
+                              border: '1px solid var(--neon-blue)',
+                              borderRadius: '10px',
+                              padding: '1rem'
+                            }}>
+                              <h4 style={{
+                                color: 'var(--neon-blue)',
+                                margin: '0 0 0.5rem 0',
+                                fontSize: '1rem'
+                              }}>
+                                Current Members:
+                              </h4>
+                              <div style={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: '0.5rem'
+                              }}>
+                                {group.memberNames.map((member, memberIndex) => (
+                                  <span key={memberIndex} style={{
+                                    background: 'rgba(39, 116, 174, 0.3)',
+                                    color: '#e8e8e8',
+                                    padding: '0.3rem 0.6rem',
+                                    borderRadius: '15px',
+                                    fontSize: '0.8rem',
+                                    border: '1px solid var(--neon-blue)'
+                                  }}>
+                                    {member.id === group.creatorId ? '👑 ' : ''}{member.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <button
+                          onClick={() => joinGroup(group._id)}
+                          style={{
+                            background: 'var(--neon-blue)',
+                            color: 'var(--bg-card)',
+                            border: 'none',
+                            borderRadius: '10px',
+                            padding: '0.8rem 1.5rem',
+                            fontSize: '1rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease',
+                            boxShadow: '0 0 5px var(--neon-blue)',
+                            whiteSpace: 'nowrap',
+                            marginLeft: '1rem'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#0056b3';
+                            e.target.style.boxShadow = '0 0 8px var(--neon-blue)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'var(--neon-blue)';
+                            e.target.style.boxShadow = '0 0 5px var(--neon-blue)';
+                          }}
+                        >
+                          ➕ Join Group
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* My Groups Modal */}
+        {showGroupsModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'rgba(23, 23, 38, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '2px solid var(--neon-blue)',
+              borderRadius: '20px',
+              padding: '2rem',
+              width: '90%',
+              maxWidth: '600px',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              boxShadow: '0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue)',
+              position: 'relative'
+            }}>
+              <button 
+                onClick={() => setShowGroupsModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  background: 'transparent',
+                  border: '2px solid var(--neon-blue)',
+                  color: 'var(--neon-blue)',
+                  borderRadius: '50%',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 0 10px var(--neon-blue)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'var(--neon-blue)';
+                  e.target.style.color = 'var(--bg-primary)';
+                  e.target.style.boxShadow = '0 0 15px var(--neon-blue), 0 0 25px var(--neon-blue)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = 'var(--neon-blue)';
+                  e.target.style.boxShadow = '0 0 10px var(--neon-blue)';
+                }}
+              >
+                &times;
+              </button>
+
+              <h2 style={{
+                color: 'var(--neon-blue)',
+                textAlign: 'center',
+                marginBottom: '1.5rem',
+                fontSize: '1.8rem',
+                textShadow: '0 0 10px var(--neon-blue)'
+              }}>
+                My Study Groups
+              </h2>
+
+              {loadingGroups ? (
+                <div style={{
+                  color: '#888',
+                  textAlign: 'center',
+                  fontSize: '1.05rem',
+                  margin: '1.5rem 0'
+                }}>
+                  Loading your groups...
+                </div>
+              ) : userGroups.length === 0 ? (
+                <div style={{
+                  color: '#888',
+                  textAlign: 'center',
+                  fontSize: '1.05rem',
+                  margin: '1.5rem 0'
+                }}>
+                  You haven't joined any study groups yet.
+                </div>
+              ) : (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}>
+                  {userGroups.map((group, index) => (
+                    <div key={index} style={{
+                      background: 'rgba(23, 23, 38, 0.6)',
+                      border: '1px solid var(--neon-blue)',
+                      borderRadius: '15px',
+                      padding: '1.5rem',
+                      boxShadow: '0 0 8px var(--neon-blue)',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <h3 style={{
+                        color: 'var(--neon-blue)',
+                        margin: '0 0 1rem 0',
+                        fontSize: '1.3rem',
+                        textShadow: '0 0 5px var(--neon-blue)'
+                      }}>
+                        {group.name}
+                      </h3>
+                      
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem',
+                        marginBottom: '1rem'
+                      }}>
+                        <p style={{
+                          color: '#e8e8e8',
+                          margin: '0',
+                          fontSize: '0.9rem'
+                        }}>
+                          <strong>Course:</strong> {group.courses.join(', ')}
+                        </p>
+                        <p style={{
+                          color: '#e8e8e8',
+                          margin: '0',
+                          fontSize: '0.9rem'
+                        }}>
+                          <strong>Members:</strong> {group.members.length}/{group.maxMembers}
+                        </p>
+                        <p style={{
+                          color: '#e8e8e8',
+                          margin: '0',
+                          fontSize: '0.9rem'
+                        }}>
+                          <strong>Created:</strong> {new Date(group.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      <div style={{
+                        background: 'rgba(23, 23, 38, 0.8)',
+                        border: '1px solid var(--neon-blue)',
+                        borderRadius: '10px',
+                        padding: '1rem'
+                      }}>
+                        <h4 style={{
+                          color: 'var(--neon-blue)',
+                          margin: '0 0 0.5rem 0',
+                          fontSize: '1rem'
+                        }}>
+                          Group Members:
+                        </h4>
+                        
+                        <div style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          marginBottom: '1rem'
+                        }}>
+                          <button
+                            onClick={() => openGroupChat(group)}
+                            style={{
+                              background: 'var(--neon-blue)',
+                              color: 'var(--bg-card)',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              boxShadow: '0 0 5px var(--neon-blue)',
+                              flex: 1
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = '#0056b3';
+                              e.target.style.boxShadow = '0 0 8px var(--neon-blue)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = 'var(--neon-blue)';
+                              e.target.style.boxShadow = '0 0 5px var(--neon-blue)';
+                            }}
+                          >
+                            💬 Group Chat
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to leave "${group.name}"?`)) {
+                                leaveGroup(group._id);
+                              }
+                            }}
+                            style={{
+                              background: '#dc3545',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              padding: '0.5rem 1rem',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s ease',
+                              boxShadow: '0 0 5px #dc3545'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = '#c82333';
+                              e.target.style.boxShadow = '0 0 8px #dc3545';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = '#dc3545';
+                              e.target.style.boxShadow = '0 0 5px #dc3545';
+                            }}
+                          >
+                            🚪 Leave Group
+                          </button>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '0.5rem'
+                        }}>
+                          {group.memberNames ? (
+                            group.memberNames.map((member, memberIndex) => (
+                              <span key={memberIndex} style={{
+                                background: 'rgba(39, 116, 174, 0.3)',
+                                color: '#e8e8e8',
+                                padding: '0.3rem 0.6rem',
+                                borderRadius: '15px',
+                                fontSize: '0.8rem',
+                                border: '1px solid var(--neon-blue)'
+                              }}>
+                                {member.id === group.creatorId ? '👑 ' : ''}{member.name}
+                              </span>
+                            ))
+                          ) : (
+                            group.members.map((memberId, memberIndex) => (
+                              <span key={memberIndex} style={{
+                                background: 'rgba(39, 116, 174, 0.3)',
+                                color: '#e8e8e8',
+                                padding: '0.3rem 0.6rem',
+                                borderRadius: '15px',
+                                fontSize: '0.8rem',
+                                border: '1px solid var(--neon-blue)'
+                              }}>
+                                {memberId === group.creatorId ? '👑 ' : ''}{memberId}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
         
 
@@ -646,7 +1483,21 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
   )
 }
 
-function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) {
+function Dashboard({ 
+  currentUser, 
+  setIsLoggedIn, 
+  setCurrentUser, 
+  setChatPeer,
+  showBrowseGroupsModal,
+  setShowBrowseGroupsModal,
+  availableGroups,
+  setAvailableGroups,
+  loadingAvailableGroups,
+  setLoadingAvailableGroups,
+  fetchAvailableGroups,
+  joinGroup,
+  leaveGroup
+}) {
   const [peers, setPeers] = useState([])
   const [loading, setLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -654,6 +1505,15 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
   const [expandedBios, setExpandedBios] = useState({})
   const [expandSelfBio, setExpandSelfBio] = useState(false)
   const [showStudyGroupOptions, setShowStudyGroupOptions] = useState(false)
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false)
+  const [selectedPeers, setSelectedPeers] = useState([])
+  const [coursePeers, setCoursePeers] = useState([])
+  const [loadingCoursePeers, setLoadingCoursePeers] = useState(false)
+  const [groupFormData, setGroupFormData] = useState({
+    name: '',
+    course: '',
+    maxMembers: 5
+  })
 
   const handleLogout = () => {
     setIsLoggedIn(false)
@@ -689,6 +1549,83 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
   const clearPeers = () => {
     setPeers([])
     setHasSearched(false)
+  }
+
+  // Handle peer selection (checking/unchecking) for study group
+  const togglePeerSelection = (peerId) => {
+    setSelectedPeers(prev => 
+      prev.includes(peerId) 
+        ? prev.filter(id => id !== peerId)
+        : [...prev, peerId]
+    )
+  }
+
+  // Find peers for a specific course
+  const findPeersForCourse = async (course) => {
+    try {
+      const response = await fetch(`${API_URL}/api/users/peers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: currentUser._id,
+          coursesSeeking: [course] // Search for this specific course
+        }),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        return data.peers
+      }
+      return []
+    } catch (error) {
+      console.error('Error finding peers for course:', error)
+      return []
+    }
+  }
+
+  // Create study group
+  const createStudyGroup = async () => {
+    if (!groupFormData.name || !groupFormData.course) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      console.log('Trying to create group at:', `${API_URL}/api/groups/create`);
+      console.log('API_URL is:', API_URL);
+      
+      const response = await fetch(`${API_URL}/api/groups/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: groupFormData.name,
+          creatorId: currentUser._id,
+          course: groupFormData.course,
+          maxMembers: groupFormData.maxMembers,
+          selectedMembers: selectedPeers
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Show member names in success message
+        const memberNames = data.memberNames?.map(member => member.name).join(', ') || 'No members';
+        alert(`Study group created successfully!\n\nMembers: ${memberNames}`)
+        
+        setShowCreateGroupModal(false)
+        setSelectedPeers([])
+        setGroupFormData({ name: '', course: '', maxMembers: 5 })
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to create group: ${errorData.message}`)
+      }
+    } catch (error) {
+      console.error('Error creating study group:', error)
+      alert('Failed to create study group')
+    }
   }
 
   return (
@@ -838,6 +1775,7 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <button 
                 className="btn-primary"
+                onClick={() => setShowCreateGroupModal(true)}
                 style={{ width: '100%', padding: '15px', fontSize: '16px' }}
               >
                 Create Study Group
@@ -845,6 +1783,12 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
               
               <button 
                 className="btn-primary"
+                onClick={() => {
+                  console.log('See Existing Groups button clicked!');
+                  setShowBrowseGroupsModal(true);
+                  // Auto-fetch groups when modal opens
+                  setTimeout(() => fetchAvailableGroups(), 100);
+                }}
                 style={{ 
                   width: '100%', 
                   padding: '15px', 
@@ -880,6 +1824,247 @@ function Dashboard({ currentUser, setIsLoggedIn, setCurrentUser, setChatPeer }) 
               >
                 Want Us to Decide?
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Create Study Group Modal */}
+        {showCreateGroupModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'rgba(23, 23, 38, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '2px solid var(--neon-blue)',
+              borderRadius: '20px',
+              padding: '2rem',
+              maxWidth: '600px',
+              width: '90%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              boxShadow: '0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue)',
+              position: 'relative'
+            }}>
+              <h3 style={{ 
+                marginTop: 0, 
+                marginBottom: '20px', 
+                textAlign: 'center',
+                color: 'var(--neon-blue)',
+                fontSize: '1.8rem',
+                textShadow: '0 0 10px var(--neon-blue)'
+              }}>
+                Create Study Group
+              </h3>
+              
+              {/* Group Name Input */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: 'bold',
+                  color: 'var(--neon-blue)',
+                  textShadow: '0 0 5px var(--neon-blue)'
+                }}>
+                  Group Name: *
+                </label>
+                <input
+                  type="text"
+                  value={groupFormData.name}
+                  onChange={(e) => setGroupFormData({...groupFormData, name: e.target.value})}
+                  placeholder="e.g., CS 31 Study Squad"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid var(--neon-blue)',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: 'rgba(23, 23, 38, 0.8)',
+                    color: '#e8e8e8',
+                    outline: 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              </div>
+
+              {/* Course Selection */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: 'bold',
+                  color: 'var(--neon-blue)',
+                  textShadow: '0 0 5px var(--neon-blue)'
+                }}>
+                  Course: *
+                </label>
+                <select
+                  value={groupFormData.course}
+                  onChange={async (e) => {
+                    const selectedCourse = e.target.value
+                    setGroupFormData({...groupFormData, course: selectedCourse})
+                    setSelectedPeers([]) // Reset selected peers
+                    
+                    if (selectedCourse) {
+                      setLoadingCoursePeers(true)
+                      const peers = await findPeersForCourse(selectedCourse)
+                      setCoursePeers(peers)
+                      setLoadingCoursePeers(false)
+                    } else {
+                      setCoursePeers([])
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid var(--neon-blue)',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    backgroundColor: 'rgba(23, 23, 38, 0.8)',
+                    color: '#e8e8e8',
+                    outline: 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <option value="">Select a course</option>
+                  {currentUser?.coursesSeeking?.map((course, index) => (
+                    <option key={index} value={course}>{course}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Max Members Slider */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: 'bold',
+                  color: 'var(--neon-blue)',
+                  textShadow: '0 0 5px var(--neon-blue)'
+                }}>
+                  Max Members: {groupFormData.maxMembers}
+                </label>
+                <input
+                  type="range"
+                  min="2"
+                  max="20"
+                  value={groupFormData.maxMembers}
+                  onChange={(e) => setGroupFormData({...groupFormData, maxMembers: parseInt(e.target.value)})}
+                  style={{ 
+                    width: '100%',
+                    accentColor: 'var(--neon-blue)'
+                  }}
+                />
+              </div>
+
+              {/* Peer Selection */}
+              {groupFormData.course && (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontWeight: 'bold',
+                    color: 'var(--neon-blue)',
+                    textShadow: '0 0 5px var(--neon-blue)'
+                  }}>
+                    Select Peers to Invite for {groupFormData.course}:
+                  </label>
+                  
+                  {loadingCoursePeers ? (
+                    <div style={{ 
+                      padding: '20px', 
+                      textAlign: 'center', 
+                      color: '#888',
+                      backgroundColor: 'rgba(23, 23, 38, 0.6)',
+                      borderRadius: '10px',
+                      border: '1px solid var(--neon-blue)'
+                    }}>
+                      Finding peers for {groupFormData.course}...
+                    </div>
+                  ) : coursePeers.length > 0 ? (
+                    <div style={{ 
+                      maxHeight: '200px', 
+                      overflowY: 'auto', 
+                      border: '2px solid var(--neon-blue)', 
+                      borderRadius: '10px', 
+                      padding: '10px',
+                      backgroundColor: 'rgba(23, 23, 38, 0.6)'
+                    }}>
+                      {coursePeers.map((peer, index) => (
+                        <label key={index} style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          padding: '8px', 
+                          cursor: 'pointer',
+                          backgroundColor: selectedPeers.includes(peer._id) ? 'rgba(39, 116, 174, 0.3)' : 'transparent',
+                          borderRadius: '8px',
+                          marginBottom: '4px',
+                          transition: 'background-color 0.2s',
+                          border: selectedPeers.includes(peer._id) ? '1px solid var(--neon-blue)' : '1px solid transparent'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedPeers.includes(peer._id)}
+                            onChange={() => togglePeerSelection(peer._id)}
+                            style={{ 
+                              marginRight: '10px',
+                              accentColor: 'var(--neon-blue)'
+                            }}
+                          />
+                          <span style={{ color: 'var(--text-primary)' }}>
+                            {peer.name} ({peer.email})
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ 
+                      padding: '15px', 
+                      backgroundColor: 'rgba(23, 23, 38, 0.6)', 
+                      borderRadius: '10px', 
+                      textAlign: 'center',
+                      border: '2px solid var(--neon-blue)'
+                    }}>
+                      <p style={{ margin: 0, color: '#888' }}>
+                        No peers found for {groupFormData.course}. Try a different course or invite friends manually.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                <button
+                  onClick={createStudyGroup}
+                  className="btn-primary"
+                  style={{ padding: '12px 24px', fontSize: '16px' }}
+                >
+                  Create Group
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateGroupModal(false)
+                    setSelectedPeers([])
+                    setCoursePeers([])
+                    setGroupFormData({ name: '', course: '', maxMembers: 5 })
+                  }}
+                  className="btn-secondary"
+                  style={{ padding: '12px 24px', fontSize: '16px' }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1120,7 +2305,7 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
   );
 }
 
-function MessagesModal({ conversations, currentUser, onClose, onSelectConversation }) {
+function MessagesModal({ conversations, currentUser, onClose, onSelectConversation, selectedConversation }) {
   const [peerInfo, setPeerInfo] = useState({}); // { userId: { name, email } }
   const [loadingPeers, setLoadingPeers] = useState(true);
 
@@ -1172,8 +2357,61 @@ function MessagesModal({ conversations, currentUser, onClose, onSelectConversati
       <div className="chat-popup-modal">
         <button className="chat-popup-close" onClick={onClose}>&times;</button>
         <h2>Your Messages</h2>
+        
+        {/* Show group conversation if selected */}
+        {selectedConversation && selectedConversation.type === 'group' && (
+          <div style={{
+            background: 'rgba(23, 23, 38, 0.8)',
+            border: '2px solid var(--neon-blue)',
+            borderRadius: '15px',
+            padding: '1rem',
+            marginBottom: '1rem'
+          }}>
+            <h3 style={{
+              color: 'var(--neon-blue)',
+              margin: '0 0 0.5rem 0',
+              fontSize: '1.2rem'
+            }}>
+              🏠 {selectedConversation.name} (Group Chat)
+            </h3>
+            <p style={{
+              color: '#e8e8e8',
+              margin: '0',
+              fontSize: '0.9rem'
+            }}>
+              Members: {selectedConversation.members.map(m => m.name || m).join(', ')}
+            </p>
+            <button
+              onClick={() => onSelectConversation(selectedConversation, null)}
+              style={{
+                background: 'var(--neon-blue)',
+                color: 'var(--bg-card)',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginTop: '0.5rem',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              💬 Open Group Chat
+            </button>
+          </div>
+        )}
+        
+        {/* Individual conversations */}
+        <h3 style={{
+          color: 'var(--neon-blue)',
+          margin: '1rem 0 0.5rem 0',
+          fontSize: '1.1rem'
+        }}>
+          Individual Chats:
+        </h3>
+        
         {uniqueConversations.length === 0 ? (
-          <div className="chat-empty">No conversations yet.</div>
+          <div className="chat-empty">No individual conversations yet.</div>
         ) : loadingPeers ? (
           <div className="chat-loading">Loading conversations...</div>
         ) : (
