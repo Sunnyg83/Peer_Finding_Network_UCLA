@@ -54,6 +54,11 @@ Peer finding
 - **Message History** - Persistent chat history for all conversations
 - **Real-time Updates** - Instant message delivery and status updates
 
+### Security Features
+- **Password Hashing** - All passwords are securely hashed using bcrypt with 12 salt rounds
+- **Secure Authentication** - Login verification using bcrypt password comparison
+- **Automatic Hashing** - New passwords are automatically hashed before database storage
+
 ---
 
 ## How It Works
