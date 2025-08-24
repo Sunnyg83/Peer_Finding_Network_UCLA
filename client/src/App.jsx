@@ -401,8 +401,6 @@ function App() {
 
 
 
-
-
   // Landing page component
   const LandingPage = () => {
     const scrollToFeatures = () => {
@@ -848,18 +846,18 @@ function App() {
                 // For group chats, open group chat modal
                 setCurrentGroupChat(conv);
                 setShowGroupChatModal(true);
-                setShowMessagesModal(false);
+              setShowMessagesModal(false);
                 setShowGroupsModal(false);
               } else {
                 // For individual chats, open regular chat
                 setShowMessagesModal(false);
                 setShowGroupsModal(false);
-                setChatPeer(peer);
+              setChatPeer(peer);
               }
             }}
           />
         )}
-
+        
         {/* Group Chat Modal */}
         {showGroupChatModal && currentGroupChat && (
           <div style={{
@@ -1295,28 +1293,9 @@ function App() {
                               
                               if (unreadCount > 0) {
                                 return (
-                                  <div style={{
-                                    background: 'rgba(255, 68, 68, 0.2)',
-                                    border: '1px solid #ff4444',
-                                    borderRadius: '8px',
-                                    padding: '0.5rem 0.8rem',
-                                    marginBottom: '1rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem'
-                                  }}>
-                                    <span style={{
-                                      color: '#ff4444',
-                                      fontSize: '1rem'
-                                    }}>
-                                      🔴
-                                    </span>
-                                    <span style={{
-                                      color: '#ff4444',
-                                      fontSize: '0.9rem',
-                                      fontWeight: 'bold'
-                                    }}>
-                                      New Messages
+                                  <div className="group-unread-indicator">
+                                    <span className="group-unread-badge">
+                                      New messages
                                     </span>
                                   </div>
                                 );
@@ -1551,28 +1530,9 @@ function App() {
                           
                           if (unreadCount > 0) {
                             return (
-                              <div style={{
-                                background: 'rgba(255, 68, 68, 0.2)',
-                                border: '1px solid #ff4444',
-                                borderRadius: '8px',
-                                padding: '0.5rem 0.8rem',
-                                marginBottom: '1rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.5rem'
-                              }}>
-                                <span style={{
-                                  color: '#ff4444',
-                                  fontSize: '1rem'
-                                }}>
-                                  🔴
-                                </span>
-                                <span style={{
-                                  color: '#ff4444',
-                                  fontSize: '0.9rem',
-                                  fontWeight: 'bold'
-                                }}>
-                                  New Messages
+                              <div className="group-unread-indicator">
+                                <span className="group-unread-badge">
+                                  New messages
                                 </span>
                               </div>
                             );
@@ -1724,6 +1684,7 @@ function App() {
           </div>
         )}
         
+
 
       </div>
     </motion.div>
@@ -1921,8 +1882,7 @@ function Dashboard({
   const [showStudyGroupOptions, setShowStudyGroupOptions] = useState(false)
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false)
   const [selectedPeers, setSelectedPeers] = useState([])
-  const [coursePeers, setCoursePeers] = useState([])
-  const [loadingCoursePeers, setLoadingCoursePeers] = useState(false)
+
   const [groupFormData, setGroupFormData] = useState({
     name: '',
     course: '',
@@ -2214,29 +2174,24 @@ function Dashboard({
               
               <button 
                 className="btn-primary"
-                onClick={() => {
-                  // Ask user how many people they want in their study group
-                  const groupSize = prompt('How many other people would you like in your study group? (Enter a number between 1-10)');
-                  
-                  if (groupSize !== null) {
-                    const size = parseInt(groupSize);
-                    if (isNaN(size) || size < 1 || size > 10) {
-                      alert('Please enter a valid number between 1 and 10.');
-                      return;
-                    }
-                    
-                    // Now proceed with the study group matching
-                    alert(`Perfect! We'll find ${size} other students for your study group based on your classes and preferences.`);
-                  }
-                }}
-                style={{ 
-                  width: '100%', 
-                  padding: '15px', 
-                  fontSize: '16px',
+                disabled={false}
+                style={{
                   cursor: 'pointer'
                 }}
+                onClick={() => {
+                  alert(`🤖 AI Study Partner Matching - Coming Soon!\n\n` +
+                        `Our AI algorithm will:\n` +
+                        `• Ask for your desired group size\n` +
+                        `• Analyze all available students in your course\n` +
+                        `• Find optimal study partners based on:\n` +
+                        `  - Availability matching\n` +
+                        `  - Academic year similarity\n` +
+                        `  - Study preferences & bio\n` +
+                        `• Create a study group from these optimal partners based on your preferred group size!\n\n` +
+                        `Stay tuned for this intelligent matching feature!`);
+                }}
               >
-                Want Us to Decide?
+                🔒 Want Us to Decide? (Coming Soon)
               </button>
             </div>
           </div>
@@ -2297,12 +2252,12 @@ function Dashboard({
                   value={groupFormData.name}
                   onChange={(e) => setGroupFormData({...groupFormData, name: e.target.value})}
                   placeholder="e.g., CS 31 Study Squad"
-                  style={{
-                    width: '100%',
+                style={{ 
+                  width: '100%', 
                     padding: '12px',
                     border: '2px solid var(--neon-blue)',
                     borderRadius: '8px',
-                    fontSize: '16px',
+                  fontSize: '16px',
                     backgroundColor: 'rgba(23, 23, 38, 0.8)',
                     color: '#e8e8e8',
                     outline: 'none',
@@ -2336,14 +2291,14 @@ function Dashboard({
                       setLoadingCoursePeers(false)
                     } else {
                       setCoursePeers([])
-                    }
-                  }}
-                  style={{
-                    width: '100%',
+                  }
+                }}
+                style={{ 
+                  width: '100%', 
                     padding: '12px',
                     border: '2px solid var(--neon-blue)',
                     borderRadius: '8px',
-                    fontSize: '16px',
+                  fontSize: '16px',
                     backgroundColor: 'rgba(23, 23, 38, 0.8)',
                     color: '#e8e8e8',
                     outline: 'none',
@@ -2477,7 +2432,7 @@ function Dashboard({
                   style={{ padding: '12px 24px', fontSize: '16px' }}
                 >
                   Cancel
-                </button>
+              </button>
               </div>
             </div>
           </div>
@@ -2488,7 +2443,16 @@ function Dashboard({
             <div className="peers-list">
               <h4>Potential Study Partners:</h4>
               {peers.map((peer, index) => (
-                <div key={index} className="peer-card">
+                <div key={index} className="peer-card" style={{ position: 'relative' }}>
+                  {/* New Message Indicator */}
+                  {peer.unreadCount > 0 && (
+                    <div className="peer-unread-indicator">
+                      <span className="peer-unread-badge">
+                        New message
+                      </span>
+                    </div>
+                  )}
+                  
                   {peer.bio && (
                     <div style={{ margin: 0, marginBottom: '10px', color: '#111', whiteSpace: 'pre-line' }}>
                       {(expandedBios[peer._id] || peer.bio.length <= 160)
@@ -2833,6 +2797,9 @@ function MessagesModal({ conversations, currentUser, onClose, onSelectConversati
             {uniqueConversations.map((conv, idx) => {
               const peerId = conv.users.find(id => id !== currentUser._id);
               const peer = peerInfo[peerId] || { name: peerId, email: '' };
+              const unreadCount = conv.unreadCount?.[currentUser._id] || 0;
+              const hasUnreadMessages = unreadCount > 0;
+              
               return (
                 <div
                   key={conv.id}
@@ -2842,6 +2809,13 @@ function MessagesModal({ conversations, currentUser, onClose, onSelectConversati
                   <div className="chat-message-content">
                     <div className="chat-message-sender">{peer.name}</div>
                     <div className="chat-message-email">{peer.email}</div>
+                    {hasUnreadMessages && (
+                      <div className="chat-message-unread-indicator">
+                        <span className="unread-badge">
+                          {unreadCount === 1 ? 'New message' : `${unreadCount} new messages`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

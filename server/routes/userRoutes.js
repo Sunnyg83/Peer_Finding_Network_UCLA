@@ -4,6 +4,8 @@ const User = require('../models/User');
 const multer = require('multer');
 const AWS = require('aws-sdk');
 
+
+
 // Configure AWS
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,

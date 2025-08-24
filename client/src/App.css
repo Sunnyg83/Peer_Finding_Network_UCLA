@@ -1064,6 +1064,77 @@ body {
   text-overflow: ellipsis;
 }
 
+.chat-message-unread-indicator {
+  margin-top: 0.5rem;
+}
+
+.unread-badge {
+  display: inline-block;
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  animation: pulse 2s infinite;
+  border: 1px solid rgba(255, 107, 107, 0.8);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.8), 0 0 25px rgba(255, 107, 107, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  }
+}
+
+/* Group unread message indicator styles */
+.group-unread-indicator {
+  margin-bottom: 1rem;
+}
+
+.group-unread-badge {
+  display: inline-block;
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  animation: pulse 2s infinite;
+  border: 1px solid rgba(255, 107, 107, 0.8);
+}
+
+/* Peer unread message indicator styles */
+.peer-unread-indicator {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1;
+}
+
+.peer-unread-badge {
+  display: inline-block;
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  animation: pulse 2s infinite;
+  border: 1px solid rgba(255, 107, 107, 0.8);
+}
+
 .chat-loading, .chat-error, .chat-empty {
   color: #888;
   text-align: center;
@@ -1839,6 +1910,36 @@ body {
   color: #e8e8e8;
   font-size: 0.9rem;
   opacity: 0.8;
+}
+
+.chat-message-unread-indicator {
+  margin-top: 0.5rem;
+}
+
+.unread-badge {
+  display: inline-block;
+  background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(255, 107, 107, 0.8);
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  animation: pulse 2s infinite;
+  border: 1px solid rgba(255, 107, 107, 0.8);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.8), 0 0 25px rgba(255, 107, 107, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
+  }
 }
 
 .chat-empty, .chat-loading {
