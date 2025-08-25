@@ -502,7 +502,7 @@ function App() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-              Bruin Study - UCLA's Study Network
+              Study Bruins - UCLA's Study Network
             </motion.h1>
               <motion.h2 
                 className="hero-subtitle"
@@ -519,7 +519,7 @@ function App() {
                 transition={{ duration: 0.8, delay: 0.8 }}
               >
               Struggling to find study partners? Need help understanding course material? 
-              Bruin Study connects you with fellow UCLA students taking the same classes. 
+              Study Bruins connects you with fellow UCLA students taking the same classes. 
               Find study groups, get homework help, and make friends who share your academic journey.
             </motion.p>
               <motion.div 
