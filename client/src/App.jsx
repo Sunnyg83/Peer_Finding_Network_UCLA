@@ -38,16 +38,32 @@ const ParticleBackground = () => {
         particleContainer.appendChild(particle);
       }
 
-      // Create floating geometric shapes
+      // Create floating Bruins
+      for (let i = 0; i < 16; i++) {
+        const bruin = document.createElement('div');
+        bruin.className = 'floating-bruin';
+        bruin.textContent = '🐻';
+        bruin.style.left = Math.random() * 100 + '%';
+        bruin.style.top = Math.random() * 100 + '%';
+        bruin.style.animationDelay = Math.random() * 4 + 's';
+        bruin.style.animationDuration = (Math.random() * 10 + 15) + 's';
+        bruin.style.fontSize = (Math.random() * 30 + 40) + 'px';
+        bruin.style.opacity = '0.2';
+        particleContainer.appendChild(bruin);
+      }
+
+      // Create floating UCLA banners
       for (let i = 0; i < 8; i++) {
-        const shape = document.createElement('div');
-        shape.className = 'floating-shape';
-        shape.style.left = Math.random() * 100 + '%';
-        shape.style.top = Math.random() * 100 + '%';
-        shape.style.animationDelay = Math.random() * 4 + 's';
-        shape.style.animationDuration = (Math.random() * 10 + 15) + 's';
-        shape.style.transform = `rotate(${Math.random() * 360}deg)`;
-        particleContainer.appendChild(shape);
+        const banner = document.createElement('div');
+        banner.className = 'floating-banner';
+        banner.innerHTML = '<img src="/UCLA_Bruins_logo.svg.png" alt="UCLA Bruins" />';
+        banner.style.left = Math.random() * 100 + '%';
+        banner.style.top = Math.random() * 100 + '%';
+        banner.style.animationDelay = Math.random() * 4 + 's';
+        banner.style.animationDuration = (Math.random() * 10 + 15) + 's';
+        banner.style.opacity = '0.8';
+        banner.style.zIndex = '10';
+        particleContainer.appendChild(banner);
       }
 
       // Create connection lines
