@@ -658,6 +658,14 @@ body {
 .user-info strong {
   color: #ffffff; /* White for maximum readability */
   text-shadow: none;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.8rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--neon-blue);
+  margin-top: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: block;
+  margin-bottom: 0.5rem;
 }
 
 /* Peer finding section */
@@ -743,9 +751,15 @@ body {
 
 .peer-card p {
   margin-bottom: 0.5rem;
-  color: #e8e8e8; /* Soft light gray for better readability */
+  color: #ffffff; /* White text for better contrast */
   font-size: 0.95rem;
   line-height: 1.4;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.8rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--neon-blue);
+  margin-top: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .peer-card strong {
