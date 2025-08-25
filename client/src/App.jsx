@@ -61,7 +61,7 @@ const ParticleBackground = () => {
         banner.style.top = Math.random() * 100 + '%';
         banner.style.animationDelay = Math.random() * 4 + 's';
         banner.style.animationDuration = (Math.random() * 10 + 15) + 's';
-        banner.style.opacity = '0.8';
+        banner.style.opacity = '0.15'; // start subtle so it blends immediately
         banner.style.zIndex = '10';
         particleContainer.appendChild(banner);
       }
