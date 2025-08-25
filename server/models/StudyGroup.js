@@ -21,6 +21,10 @@ const studyGroupSchema = new mongoose.Schema({
   members: [{
     type: String
   }],
+  isPublic: {
+    type: Boolean,
+    default: true  // Default to public so existing groups work
+  },
   createdAt: {
     type: Date,
     default: Date.now

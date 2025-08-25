@@ -15,6 +15,7 @@ import {
 } from './firebaseChatModel';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { departments, getDepartmentName, getDepartmentCode } from './departments';
 
 // Particle Background Component
 const ParticleBackground = () => {
@@ -36,6 +37,30 @@ const ParticleBackground = () => {
         particle.style.animationDuration = (Math.random() * 3 + 4) + 's';
         particleContainer.appendChild(particle);
       }
+
+      // Create floating geometric shapes
+      for (let i = 0; i < 8; i++) {
+        const shape = document.createElement('div');
+        shape.className = 'floating-shape';
+        shape.style.left = Math.random() * 100 + '%';
+        shape.style.top = Math.random() * 100 + '%';
+        shape.style.animationDelay = Math.random() * 4 + 's';
+        shape.style.animationDuration = (Math.random() * 10 + 15) + 's';
+        shape.style.transform = `rotate(${Math.random() * 360}deg)`;
+        particleContainer.appendChild(shape);
+      }
+
+      // Create connection lines
+      for (let i = 0; i < 15; i++) {
+        const line = document.createElement('div');
+        line.className = 'connection-line';
+        line.style.left = Math.random() * 100 + '%';
+        line.style.top = Math.random() * 100 + '%';
+        line.style.width = (Math.random() * 100 + 50) + 'px';
+        line.style.animationDelay = Math.random() * 3 + 's';
+        line.style.animationDuration = (Math.random() * 5 + 8) + 's';
+        particleContainer.appendChild(line);
+      }
     };
 
     createParticles();
@@ -47,7 +72,13 @@ const ParticleBackground = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  return <div id="particles-js" />;
+  return (
+    <>
+      <div id="particles-js" />
+      <div className="animated-gradient-bg" />
+      <div className="geometric-overlay" />
+    </>
+  );
 };
 
 function App() {
@@ -248,6 +279,31 @@ function App() {
     }
   };
 
+  // Send join request for private groups
+  const sendJoinRequest = async (groupId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/request-join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser._id })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Join request sent to creator`);
+        
+        // Refresh available groups to update button state
+        await fetchAvailableGroups();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to send request: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error sending join request:', error);
+      alert('Failed to send join request');
+    }
+  };
+
   // Close group chat modal and clean up
   const closeGroupChatModal = () => {
     setShowGroupChatModal(false);
@@ -304,9 +360,7 @@ function App() {
         // Refresh user groups
         await fetchUserGroups();
         
-        // Firebase conversation will be automatically updated by the backend
-        // System message "X left the group" will be sent automatically
-        console.log('Group left successfully - backend will handle Firebase updates');
+        console.log('Group left successfully');
         
         alert('Successfully left the group!');
       } else {
@@ -318,6 +372,8 @@ function App() {
       alert('Failed to leave group');
     }
   };
+
+
 
   // Fetch available groups for user's courses
   const fetchAvailableGroups = async () => {
@@ -430,7 +486,7 @@ function App() {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-              Peer Network
+              Bruin Study - UCLA's Study Network
             </motion.h1>
               <motion.h2 
                 className="hero-subtitle"
@@ -447,7 +503,7 @@ function App() {
                 transition={{ duration: 0.8, delay: 0.8 }}
               >
               Struggling to find study partners? Need help understanding course material? 
-              Peer Network connects you with fellow UCLA students taking the same classes. 
+              Bruin Study connects you with fellow UCLA students taking the same classes. 
               Find study groups, get homework help, and make friends who share your academic journey.
             </motion.p>
               <motion.div 
@@ -500,31 +556,13 @@ function App() {
               },
               {
                 icon: "💬",
-                title: "Real-Time Chat",
-                description: "Chat instantly with your study partners. Share notes, ask questions, and collaborate on assignments in real-time."
+                title: "Real-Time Collaboration",
+                description: "Chat instantly with your study partners and create study groups. Share notes, ask questions, and collaborate on assignments in real-time. Build study groups with your preferred size and manage them easily."
               },
               {
                 icon: "🤝",
-                title: "Build Friendships",
-                description: "More than just study partners - make lasting friendships with students who share your academic interests and goals."
-              },
-              {
-                icon: "⚡",
-                title: "Instant Matching",
-                description: "Get matched with compatible study partners instantly. No waiting, just direct connections.",
-                comingSoon: "Coming soon: Personalized study groups"
-              },
-              {
-                icon: "🔒",
-                title: "Safe & Secure",
-                description: "UCLA student verification coming soon! For now, anyone can join and connect.",
-                comingSoon: "Coming soon: UCLA student verification"
-              },
-              {
-                icon: "📱",
-                title: "Always Available",
-                description: "Access your study network anytime, anywhere. Perfect for late-night study sessions and last-minute questions.",
-                comingSoon: "Coming soon: Mobile app & notifications"
+                title: "Build Your Network",
+                description: "More than just study partners - make lasting friendships with students who share your academic interests and goals. Join public or private study groups, and connect with peers who understand your academic journey."
               }
             ].map((feature, index) => (
               <motion.div
@@ -547,30 +585,9 @@ function App() {
                   {feature.icon}
                 </motion.div>
                 <h3 className="feature-title">{feature.title}</h3>
-                <p className="feature-description" style={{paddingBottom: feature.comingSoon ? '1.7rem' : '0'}}>
+                <p className="feature-description">
                   {feature.description}
                 </p>
-                {feature.comingSoon && (
-                  <motion.div 
-                    style={{marginTop: '1rem'}}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    viewport={{ once: true }}
-                  >
-                    <span style={{
-                      background:'#FFD100', 
-                      color:'#17408B', 
-                      borderRadius: '8px', 
-                      padding:'0.3em 0.8em', 
-                      fontWeight:600, 
-                      fontSize:'0.95rem', 
-                      display:'inline-block'
-                    }}>
-                      {feature.comingSoon}
-                    </span>
-                  </motion.div>
-                )}
               </motion.div>
             ))}
           </motion.div>
@@ -808,6 +825,7 @@ function App() {
             fetchAvailableGroups={fetchAvailableGroups}
             joinGroup={joinGroup}
             leaveGroup={leaveGroup}
+
           />
         )}
         {/* Chat popup modal (Chat + Messages react state vars) */}
@@ -1273,14 +1291,30 @@ function App() {
                         marginBottom: '1rem'
                       }}>
                         <div style={{ flex: 1 }}>
-                          <h3 style={{
-                            color: 'var(--neon-blue)',
-                            margin: '0 0 1rem 0',
-                            fontSize: '1.3rem',
-                            textShadow: '0 0 5px var(--neon-blue)'
-                          }}>
-                            {group.name}
-                          </h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                            <h3 style={{
+                              color: 'var(--neon-blue)',
+                              margin: '0',
+                              fontSize: '1.3rem',
+                              textShadow: '0 0 5px var(--neon-blue)'
+                            }}>
+                              {group.name}
+                            </h3>
+                            <span style={{
+                              background: group.isPublic ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 107, 107, 0.2)',
+                              color: group.isPublic ? '#4caf50' : '#ff6b6b',
+                              padding: '0.3rem 0.6rem',
+                              borderRadius: '12px',
+                              fontSize: '0.8rem',
+                              fontWeight: 'bold',
+                              border: `1px solid ${group.isPublic ? '#4caf50' : '#ff6b6b'}`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px'
+                            }}>
+                              {group.isPublic ? '🌐 Public' : '🔒 Private'}
+                            </span>
+                          </div>
                           
                           {/* New Messages Indicator - Only show if user is a member */}
                           {(() => {
@@ -1370,9 +1404,9 @@ function App() {
                         </div>
                         
                         <button
-                          onClick={() => joinGroup(group._id)}
+                          onClick={() => group.isPublic ? joinGroup(group._id) : sendJoinRequest(group._id)}
                           style={{
-                            background: 'var(--neon-blue)',
+                            background: group.isPublic ? 'var(--neon-blue)' : '#ff6b6b',
                             color: 'var(--bg-card)',
                             border: 'none',
                             borderRadius: '10px',
@@ -1381,20 +1415,26 @@ function App() {
                             fontWeight: 'bold',
                             cursor: 'pointer',
                             transition: 'all 0.3s ease',
-                            boxShadow: '0 0 5px var(--neon-blue)',
+                            boxShadow: group.isPublic ? '0 0 5px var(--neon-blue)' : '0 0 5px #ff6b6b',
                             whiteSpace: 'nowrap',
                             marginLeft: '1rem'
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.background = '#0056b3';
-                            e.target.style.boxShadow = '0 0 8px var(--neon-blue)';
+                            if (group.isPublic) {
+                              e.target.style.background = '#0056b3';
+                              e.target.style.boxShadow = '0 0 8px var(--neon-blue)';
+                            } else {
+                              e.target.style.boxShadow = '0 0 8px #ff6b6b';
+                            }
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.background = 'var(--neon-blue)';
-                            e.target.style.boxShadow = '0 0 5px var(--neon-blue)';
+                            if (group.isPublic) {
+                              e.target.style.background = group.isPublic ? 'var(--neon-blue)' : '#ff6b6b';
+                              e.target.style.boxShadow = group.isPublic ? '0 0 5px var(--neon-blue)' : '0 0 5px #ff6b6b';
+                            }
                           }}
                         >
-                          ➕ Join Group
+                          {group.isPublic ? '➕ Join Group' : '🔒 Request Join'}
                         </button>
                       </div>
                     </div>
@@ -1510,14 +1550,30 @@ function App() {
                       boxShadow: '0 0 8px var(--neon-blue)',
                       transition: 'all 0.3s ease'
                     }}>
-                      <h3 style={{
-                        color: 'var(--neon-blue)',
-                        margin: '0 0 1rem 0',
-                        fontSize: '1.3rem',
-                        textShadow: '0 0 5px var(--neon-blue)'
-                      }}>
-                        {group.name}
-                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
+                        <h3 style={{
+                          color: 'var(--neon-blue)',
+                          margin: '0',
+                          fontSize: '1.3rem',
+                          textShadow: '0 0 5px var(--neon-blue)'
+                        }}>
+                          {group.name}
+                        </h3>
+                        <span style={{
+                          background: group.isPublic ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 107, 107, 0.2)',
+                          color: group.isPublic ? '#4caf50' : '#ff6b6b',
+                          padding: '0.3rem 0.6rem',
+                          borderRadius: '12px',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold',
+                          border: `1px solid ${group.isPublic ? '#4caf50' : '#ff6b6b'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}>
+                          {group.isPublic ? '🌐 Public' : '🔒 Private'}
+                        </span>
+                      </div>
                       
                       {/* New Messages Indicator - Only show if user is a member */}
                       {(() => {
@@ -1540,6 +1596,29 @@ function App() {
                         }
                         return null;
                       })()}
+
+                      {/* Join Requests Section - Only show for group creator */}
+                      {group.creatorId === currentUser._id && (
+                        <div style={{
+                          background: 'rgba(255, 193, 7, 0.1)',
+                          border: '1px solid #ffc107',
+                          borderRadius: '10px',
+                          padding: '1rem',
+                          marginBottom: '1rem'
+                        }}>
+                          <h4 style={{
+                            color: '#ffc107',
+                            margin: '0 0 0.5rem 0',
+                            fontSize: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            🔔 Join Requests
+                          </h4>
+                          <JoinRequestsSection groupId={group._id} currentUser={currentUser} />
+                        </div>
+                      )}
                       
                       <div style={{
                         display: 'flex',
@@ -1755,19 +1834,86 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
     name: '',
     email: '',
     password: '',
-    coursesSeeking: '',
+    courses: [{ department: '', courseNumber: '' }],
     availability: '',
     year: ''
   })
 
+  // functions for managing courses
+  const addCourse = () => {
+    if (formData.courses.length < 4) {
+      setFormData({
+        ...formData,
+        courses: [...formData.courses, { department: '', courseNumber: '' }]
+      });
+    }
+  };
+
+  // Check for duplicate courses
+  const hasDuplicateCourses = () => {
+    const courseStrings = formData.courses
+      .filter(course => course.department && course.courseNumber)
+      .map(course => `${course.department} ${course.courseNumber.toUpperCase()}`);
+    
+    const uniqueCourses = new Set(courseStrings); // use set data structure to remove duplicates
+    return courseStrings.length !== uniqueCourses.size; // return true if there are duplicates (not equal) - set gets rid of duplicates
+  };
+
+  // Get duplicate course names for error message
+  const getDuplicateCourses = () => {
+    const courseStrings = formData.courses
+      .filter(course => course.department && course.courseNumber)
+      .map(course => `${course.department} ${course.courseNumber.toUpperCase()}`);
+    
+    // find which courses appear more than once
+      const duplicates = courseStrings.filter((course, index) => 
+      courseStrings.indexOf(course) !== index // duplicates - check with index of first occurrence to current index
+    );
+    
+    return [...new Set(duplicates)]; // show duplicate course once in error msg
+  };
+
+  const removeCourse = (index) => {
+    if (formData.courses.length > 1) { // keep at least one course
+      const newCourses = formData.courses.filter((_, i) => i !== index); // keep all indices escept the one we want to remove
+      setFormData({
+        ...formData,
+        courses: newCourses
+      });
+    }
+  };
+
+  const updateCourse = (index, field, value) => {
+    const newCourses = [...formData.courses];
+    newCourses[index] = { ...newCourses[index], [field]: value };
+    setFormData({
+      ...formData,
+      courses: newCourses
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Check for duplicate courses
+    if (hasDuplicateCourses()) {
+      const duplicates = getDuplicateCourses();
+      alert(`Please remove duplicate course(s):\n${duplicates.join('\n')}`);
+      return;
+    }
+    
     try {
+      // Convert all courses to standardized format (uppercase course numbers, remove spaces)
+      const coursesSeeking = formData.courses
+        .filter(course => course.department && course.courseNumber)
+        .map(course => `${course.department} ${course.courseNumber.toUpperCase().replace(/\s+/g, '')}`);
+      
       console.log('Submitting registration:', {
         ...formData,
         email: formData.email.toLowerCase(),
-        coursesSeeking: formData.coursesSeeking.split(',').map(course => course.trim())
+        coursesSeeking: coursesSeeking
       });
+      
       const response = await fetch(`${API_URL}/api/users/register`, {
         method: 'POST',
         headers: {
@@ -1776,7 +1922,7 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
         body: JSON.stringify({
           ...formData,
           email: formData.email.toLowerCase(),
-          coursesSeeking: formData.coursesSeeking.split(',').map(course => course.trim())
+          coursesSeeking: coursesSeeking
         }),
       })
       
@@ -1824,15 +1970,99 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
         />
       </div>
       <div className="form-group">
-        <label>Courses Seeking (comma-separated):</label>
-        <input
-          type="text"
-          value={formData.coursesSeeking}
-          onChange={(e) => setFormData({...formData, coursesSeeking: e.target.value})}
-          placeholder="e.g., CS 31, Math 32A, Physics 1A"
-          required
-        />
+        <label>Courses Seeking:</label>
+        {formData.courses.map((course, index) => (
+          <div key={index} style={{ 
+            border: '1px solid #ddd', 
+            padding: '15px', 
+            marginBottom: '10px', 
+            borderRadius: '8px',
+            backgroundColor: 'transparent'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontWeight: 'bold', color: 'var(--neon-blue)' }}>Course {index + 1}</span>
+              {formData.courses.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeCourse(index)}
+                  style={{
+                    background: '#ff6b6b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '24px',
+                    height: '24px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.9rem', marginBottom: '5px', display: 'block' }}>Department:</label>
+                <select
+                  value={course.department}
+                  onChange={(e) => updateCourse(index, 'department', e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--neon-blue)',
+                    backgroundColor: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    boxShadow: '0 0 5px var(--neon-blue)',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="">Select a department</option>
+                  {departments.map((dept, deptIndex) => (
+                    <option key={deptIndex} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.9rem', marginBottom: '5px', display: 'block' }}>Course Number:</label>
+                <input
+                  type="text"
+                  value={course.courseNumber}
+                  onChange={(e) => updateCourse(index, 'courseNumber', e.target.value)}
+                  placeholder="e.g., 31, 1A, 101"
+                  required
+                  disabled={!course.department}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {formData.courses.length < 4 && (
+          <button
+            type="button"
+            onClick={addCourse}
+            style={{
+              background: 'var(--neon-blue)',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              marginTop: '5px'
+            }}
+          >
+            + Add Another Course
+          </button>
+        )}
       </div>
+      
+
       <div className="form-group">
         <label>Availability:</label>
         <input
@@ -1858,6 +2088,159 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
   )
 }
 
+// JoinRequestsSection component for group creators to manage join requests
+function JoinRequestsSection({ groupId, currentUser }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch join requests for this group
+  const fetchRequests = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/requests`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Received join requests data:', data);
+        console.log('Requests array:', data.requests);
+        if (data.requests && data.requests.length > 0) {
+          console.log('First request details:', data.requests[0]);
+          console.log('User ID:', data.requests[0].userId);
+        }
+        setRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Error fetching join requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load requests when component mounts
+  useEffect(() => {
+    fetchRequests();
+  }, [groupId]);
+
+  // Accept a join request
+  const acceptRequest = async (requestId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/accept-request/${requestId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        alert('Join request accepted! User has been added to the group.');
+        // Refresh requests
+        await fetchRequests();
+        // Refresh the page to show updated member count
+        window.location.reload();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to accept request: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      alert('Failed to accept join request');
+    }
+  };
+
+  // Reject a join request
+  const rejectRequest = async (requestId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/reject-request/${requestId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        alert('Join request rejected.');
+        // Refresh requests
+        await fetchRequests();
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to reject request: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      alert('Failed to reject join request');
+    }
+  };
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '1rem' }}>Loading join requests...</div>;
+  }
+
+  if (requests.length === 0) {
+    return <div style={{ textAlign: 'center', padding: '1rem', color: '#666' }}>No pending join requests</div>;
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+      {requests.map((request) => (
+        <div key={request._id} style={{
+          background: 'rgba(23, 23, 38, 0.6)',
+          border: '1px solid #ffc107',
+          borderRadius: '8px',
+          padding: '0.8rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <div style={{ color: '#e8e8e8', fontWeight: 'bold', marginBottom: '0.3rem' }}>
+              {request.userName || 'Unknown User'}
+            </div>
+            <div style={{ color: '#888', fontSize: '0.8rem' }}>
+              {request.userEmail || 'No email'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => acceptRequest(request._id)}
+              style={{
+                background: '#4caf50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                transition: 'all 0.3s ease'
+              }}
+              title="Accept request"
+            >
+              ✅
+            </button>
+            <button
+              onClick={() => rejectRequest(request._id)}
+              style={{
+                background: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                transition: 'all 0.3s ease'
+              }}
+              title="Reject request"
+            >
+              ❌
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Dashboard({ 
   currentUser, 
   setIsLoggedIn, 
@@ -1871,7 +2254,8 @@ function Dashboard({
   setLoadingAvailableGroups,
   fetchAvailableGroups,
   joinGroup,
-  leaveGroup
+  leaveGroup,
+
 }) {
   const [peers, setPeers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -1882,11 +2266,14 @@ function Dashboard({
   const [showStudyGroupOptions, setShowStudyGroupOptions] = useState(false)
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false)
   const [selectedPeers, setSelectedPeers] = useState([])
+  const [coursePeers, setCoursePeers] = useState([])
+  const [loadingCoursePeers, setLoadingCoursePeers] = useState(false)
 
   const [groupFormData, setGroupFormData] = useState({
     name: '',
     course: '',
-    maxMembers: 5
+    maxMembers: 5,
+    isPublic: true  // Default to public
   })
 
   const handleLogout = () => {
@@ -1898,6 +2285,8 @@ function Dashboard({
     setLoading(true)
     setHasSearched(true)
     try {
+      console.log('🔍 Searching for peers with courses:', currentUser.coursesSeeking); // appears in frontend developer console
+      
       const response = await fetch(`${API_URL}/api/users/peers`, {
         method: 'POST',
         headers: {
@@ -1910,11 +2299,37 @@ function Dashboard({
       })
       
       if (response.ok) {
-        const data = await response.json()
-        setPeers(data.peers)
+        const data = await response.json() // logs in dev conosle - for debugging
+        console.log('📊 Received peer data:', data);
+        console.log('👥 Peers with match scores:', data.peers?.map(p => ({
+          name: p.name,
+          matchScore: p.matchScore,
+          totalCourses: p.totalCourses,
+          courses: p.coursesSeeking
+        })));
+        
+        // Verify the peers are sorted by priority
+        if (data.peers && data.peers.length > 0) {
+          const firstPeer = data.peers[0];
+          const lastPeer = data.peers[data.peers.length - 1];
+          console.log('🥇 First peer (highest priority):', {
+            name: firstPeer.name,
+            matchScore: firstPeer.matchScore,
+            totalCourses: firstPeer.totalCourses
+          });
+          console.log('🥉 Last peer (lowest priority):', {
+            name: lastPeer.name,
+            matchScore: lastPeer.matchScore,
+            totalCourses: lastPeer.totalCourses
+          });
+        }
+        
+        setPeers(data.peers || []) // prevent error if data is empty [], update peers state var
+      } else {
+        console.error('❌ API response not ok:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error finding peers:', error)
+      console.error('❌ Error finding peers:', error)
     } finally {
       setLoading(false)
     }
@@ -1937,6 +2352,12 @@ function Dashboard({
   // Find peers for a specific course
   const findPeersForCourse = async (course) => {
     try {
+      console.log('Finding peers for course:', course, 'API_URL:', API_URL);
+      
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch(`${API_URL}/api/users/peers`, {
         method: 'POST',
         headers: {
@@ -1946,20 +2367,30 @@ function Dashboard({
           userId: currentUser._id,
           coursesSeeking: [course] // Search for this specific course
         }),
-      })
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json()
+        console.log('Found peers:', data.peers);
         return data.peers
+      } else {
+        console.error('API response not ok:', response.status, response.statusText);
+        return []
       }
-      return []
     } catch (error) {
-      console.error('Error finding peers for course:', error)
+      if (error.name === 'AbortError') {
+        console.error('Request timed out after 10 seconds');
+      } else {
+        console.error('Error finding peers for course:', error)
+      }
       return []
     }
   }
 
-  // Create study group
+    // Create study group
   const createStudyGroup = async () => {
     if (!groupFormData.name || !groupFormData.course) {
       alert('Please fill in all required fields')
@@ -1978,6 +2409,7 @@ function Dashboard({
           creatorId: currentUser._id,
           course: groupFormData.course,
           maxMembers: groupFormData.maxMembers,
+          isPublic: groupFormData.isPublic,
           selectedMembers: selectedPeers
         })
       })
@@ -2336,6 +2768,65 @@ function Dashboard({
                 />
               </div>
 
+              {/* Public/Private Toggle */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: 'bold',
+                  color: 'var(--neon-blue)',
+                  textShadow: '0 0 5px var(--neon-blue)'
+                }}>
+                  Group Access:
+                </label>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '10px', 
+                  alignItems: 'center',
+                  padding: '10px',
+                  background: 'rgba(23, 23, 38, 0.6)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--neon-blue)'
+                }}>
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    cursor: 'pointer',
+                    color: groupFormData.isPublic ? 'var(--neon-blue)' : '#888'
+                  }}>
+                    <input
+                      type="radio"
+                      name="groupAccess"
+                      value="public"
+                      checked={groupFormData.isPublic === true}
+                      onChange={() => setGroupFormData({...groupFormData, isPublic: true})}
+                      style={{ accentColor: 'var(--neon-blue)' }}
+                    />
+                    <span style={{ fontWeight: 'bold' }}>🌐 Public</span>
+                    <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>- Anyone can join</span>
+                  </label>
+                  <label style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    cursor: 'pointer',
+                    color: groupFormData.isPublic === false ? 'var(--neon-blue)' : '#888'
+                  }}>
+                    <input
+                      type="radio"
+                      name="groupAccess"
+                      value="private"
+                      checked={groupFormData.isPublic === false}
+                      onChange={() => setGroupFormData({...groupFormData, isPublic: false})}
+                      style={{ accentColor: 'var(--neon-blue)' }}
+                    />
+                    <span style={{ fontWeight: 'bold' }}>🔒 Private</span>
+                    <span style={{ fontSize: '0.9rem', opacity: 0.8 }}>- Creator Approval required</span>
+                  </label>
+                </div>
+              </div>
+
               {/* Peer Selection */}
               {groupFormData.course && (
                 <div style={{ marginBottom: '20px' }}>
@@ -2422,12 +2913,12 @@ function Dashboard({
                   Create Group
                 </button>
                 <button
-                  onClick={() => {
-                    setShowCreateGroupModal(false)
-                    setSelectedPeers([])
-                    setCoursePeers([])
-                    setGroupFormData({ name: '', course: '', maxMembers: 5 })
-                  }}
+                                  onClick={() => {
+                  setShowCreateGroupModal(false)
+                  setSelectedPeers([])
+                  setCoursePeers([])
+                  setGroupFormData({ name: '', course: '', maxMembers: 5, isPublic: true })
+                }}
                   className="btn-secondary"
                   style={{ padding: '12px 24px', fontSize: '16px' }}
                 >
@@ -2441,7 +2932,7 @@ function Dashboard({
         {hasSearched && !showStudyGroupOptions && (
           peers.length > 0 ? (
             <div className="peers-list">
-              <h4>Potential Study Partners:</h4>
+              <h4>Potential Study Partners (Sorted by Most Matches):</h4>
               {peers.map((peer, index) => (
                 <div key={index} className="peer-card" style={{ position: 'relative' }}>
                   {/* New Message Indicator */}
@@ -2482,9 +2973,11 @@ function Dashboard({
                         marginRight: '15px'
                       }} 
                     />
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <h5 style={{ margin: '0 0 5px 0', color: '#000' }}>{peer.name}</h5>
                       <p style={{ margin: '0', color: '#000', fontSize: '14px' }}>{peer.email}</p>
+                      
+
                     </div>
                   </div>
                   <p><strong>Courses:</strong> {peer.coursesSeeking?.join(', ')}</p>
@@ -2513,8 +3006,25 @@ function Dashboard({
 }
 
 function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeers, clearPeers }) {
+  // Convert existing coursesSeeking array to the new format { department, courseNumber }
+  // remember user courses so render original courses in edit profile form
+  const convertExistingCourses = (coursesArray) => {
+    if (!Array.isArray(coursesArray)) return [{ department: '', courseNumber: '' }];
+    
+    return coursesArray.map(course => {
+      // Try to parse existing course format (e.g., "Computer Science 31A")
+      const parts = course.split(' ');
+      if (parts.length >= 2) {
+        const courseNumber = parts.pop(); // Last part is course number
+        const department = parts.join(' '); // Everything else is department
+        return { department, courseNumber };
+      }
+      return { department: course, courseNumber: '' }; // Fallback
+    });
+  };
+
   const [formData, setFormData] = useState({
-    coursesSeeking: currentUser.coursesSeeking.join(', '),
+    courses: convertExistingCourses(currentUser.coursesSeeking), // seperates into department and course number
     availability: currentUser.availability,
     year: currentUser.year,
     bio: currentUser.bio || ''
@@ -2525,6 +3035,58 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
   const [imagePreview, setImagePreview] = useState(
     currentUser.imageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUwIiBjeT0iMzUiIHI9IjE1IiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAgODBDMTAgNjUgMjAgNTUgMzUgNTVINjVDODAgNTUgOTAgNjUgOTAgODBWNzBIMFY4MFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo='
   );
+
+  // Helper functions for managing courses - literally the same as in register form
+  const addCourse = () => {
+    if (formData.courses.length < 4) {
+      setFormData({
+        ...formData,
+        courses: [...formData.courses, { department: '', courseNumber: '' }]
+      });
+    }
+  };
+
+  // Check for duplicate courses
+  const hasDuplicateCourses = () => {
+    const courseStrings = formData.courses
+      .filter(course => course.department && course.courseNumber)
+      .map(course => `${course.department} ${course.courseNumber.toUpperCase()}`);
+    
+    const uniqueCourses = new Set(courseStrings);
+    return courseStrings.length !== uniqueCourses.size;
+  };
+
+  // Get duplicate course names for error message
+  const getDuplicateCourses = () => {
+    const courseStrings = formData.courses
+      .filter(course => course.department && course.courseNumber)
+      .map(course => `${course.department} ${course.courseNumber.toUpperCase()}`);
+    
+    const duplicates = courseStrings.filter((course, index) => 
+      courseStrings.indexOf(course) !== index
+    );
+    
+    return [...new Set(duplicates)];
+  };
+
+  const removeCourse = (index) => {
+    if (formData.courses.length > 1) {
+      const newCourses = formData.courses.filter((_, i) => i !== index);
+      setFormData({
+        ...formData,
+        courses: newCourses
+      });
+    }
+  };
+
+  const updateCourse = (index, field, value) => {
+    const newCourses = [...formData.courses];
+    newCourses[index] = { ...newCourses[index], [field]: value };
+    setFormData({
+      ...formData,
+      courses: newCourses
+    });
+  };
 
   const handleImageChange = (e) => { 
     const file = e.target.files[0]; // get selected file
@@ -2545,6 +3107,14 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check for duplicate courses
+    if (hasDuplicateCourses()) {
+      const duplicates = getDuplicateCourses();
+      alert(`Please remove duplicate courses:\n${duplicates.join('\n')}`);
+      return;
+    }
+    
     setLoading(true);
     try {
       let imageUrl = currentUser.imageUrl; // Keep existing image if no new one selected
@@ -2568,12 +3138,17 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
         }
       }
       
+      //  // Convert all courses to standardized format (uppercase course numbers, remove spaces)
+      const coursesSeeking = formData.courses
+        .filter(course => course.department && course.courseNumber)
+        .map(course => `${course.department} ${course.courseNumber.toUpperCase().replace(/\s+/g, '')}`);
+      
       // Update profile with new data and image URL
       const response = await fetch(`${API_URL}/api/users/${currentUser._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          coursesSeeking: formData.coursesSeeking.split(',').map(c => c.trim()),
+          coursesSeeking: coursesSeeking,
           availability: sanitizeText(formData.availability).slice(0, 160),
           year: sanitizeText(formData.year).slice(0, 40),
           imageUrl: imageUrl,
@@ -2582,7 +3157,7 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
       });
       const data = await response.json();
       if (response.ok) {
-        const merged = data.user ? { ...data.user, bio: data.user.bio ?? formData.bio } : { ...currentUser, imageUrl, availability: formData.availability, year: formData.year, coursesSeeking: formData.coursesSeeking.split(',').map(c => c.trim()), bio: formData.bio };
+        const merged = data.user ? { ...data.user, bio: data.user.bio ?? formData.bio } : { ...currentUser, imageUrl, availability: formData.availability, year: formData.year, coursesSeeking: coursesSeeking, bio: formData.bio };
         setCurrentUser(merged);
         setEditMode(false);
         if (typeof refreshPeers === 'function') {
@@ -2603,13 +3178,96 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
       <h3 style={{marginTop: 0}}>Edit Profile</h3>
       <hr style={{margin: '0.5rem 0 1rem 0', border: 0, borderTop: '1px solid #eee'}} />
       <div className="form-group">
-        <label>Courses Seeking (comma-separated):</label>
-        <input
-          type="text"
-          value={formData.coursesSeeking}
-          onChange={e => setFormData({ ...formData, coursesSeeking: e.target.value })}
-          required
-        />
+        <label>Courses Seeking:</label>
+        {formData.courses.map((course, index) => (
+          <div key={index} style={{ 
+            border: '1px solid #ddd', 
+            padding: '15px', 
+            marginBottom: '10px', 
+            borderRadius: '8px',
+            backgroundColor: 'transparent'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontWeight: 'bold', color: 'var(--neon-blue)' }}>Course {index + 1}</span>
+              {formData.courses.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeCourse(index)}
+                  style={{
+                    background: '#ff6b6b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '24px',
+                    height: '24px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.9rem', marginBottom: '5px', display: 'block' }}>Department:</label>
+                <select
+                  value={course.department}
+                  onChange={(e) => updateCourse(index, 'department', e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--neon-blue)',
+                    backgroundColor: 'var(--bg-card)',
+                    color: 'var(--text-primary)',
+                    boxShadow: '0 0 5px var(--neon-blue)',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="">Select a department</option>
+                  {departments.map((dept, deptIndex) => (
+                    <option key={deptIndex} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: '0.9rem', marginBottom: '5px', display: 'block' }}>Course Number:</label>
+                <input
+                  type="text"
+                  value={course.courseNumber}
+                  onChange={(e) => updateCourse(index, 'courseNumber', e.target.value)}
+                  placeholder="e.g., 31, 1A, 101"
+                  required
+                  disabled={!course.department}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        
+        {formData.courses.length < 4 && (
+          <button
+            type="button"
+            onClick={addCourse}
+            style={{
+              background: 'var(--neon-blue)',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              marginTop: '5px'
+            }}
+          >
+            + Add Another Course
+          </button>
+        )}
       </div>
       <div className="form-group">
         <label>Availability:</label>

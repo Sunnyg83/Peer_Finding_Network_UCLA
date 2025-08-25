@@ -61,19 +61,96 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Find peers based on course matches
+// Find peers based on course matches with priority scoring
 router.post('/peers', async (req, res) => {
   try {
     const { userId, coursesSeeking } = req.body;
     
+    console.log('🔍 Peer search request:', { userId, coursesSeeking });
+    console.log('🔍 coursesSeeking type:', typeof coursesSeeking, 'isArray:', Array.isArray(coursesSeeking));
+    
     // Find users who are seeking the same courses (excluding the current user)
-    const peers = await User.find({
+    const allPeers = await User.find({
       _id: { $ne: userId },
       coursesSeeking: { $in: coursesSeeking }
     }).select('name email coursesSeeking availability year imageUrl bio');
 
-    res.json({ peers });
+    console.log('📊 Found peers before scoring:', allPeers.length);
+    
+    // Log the first peer to see data structure
+    if (allPeers.length > 0) {
+      const firstPeer = allPeers[0];
+      console.log('🔍 First peer data structure:', {
+        name: firstPeer.name,
+        coursesSeeking: firstPeer.coursesSeeking,
+        coursesSeekingType: typeof firstPeer.coursesSeeking,
+        isArray: Array.isArray(firstPeer.coursesSeeking),
+        hasToObject: typeof firstPeer.toObject === 'function'
+      });
+    }
+
+    // Calculate match score for each peer and sort by priority
+    const peersWithScores = allPeers.map(peer => {
+      // Ensure coursesSeeking is an array
+      const peerCourses = Array.isArray(peer.coursesSeeking) ? peer.coursesSeeking : [];
+      const searchCourses = Array.isArray(coursesSeeking) ? coursesSeeking : [];
+      
+      // Count how many courses match between the searching user and this peer - find matches
+      const matchingCourses = peerCourses.filter(course => 
+        searchCourses.includes(course)
+      );
+      
+      // Calculate match score (more matches = higher score)
+      const matchScore = matchingCourses.length;
+      
+      // Find the specific matching courses for display
+      const matchDetails = matchingCourses.map(course => ({
+        course: course,
+        isMatch: true
+      }));
+      
+      // Convert to plain object 
+      const peerData = peer.toObject ? peer.toObject() : peer;
+      
+      const peerWithScore = {
+        ...peerData,
+        matchScore: matchScore,
+        matchingCourses: matchDetails,
+        totalCourses: peerCourses.length
+      }; // scoring data - match score + course details
+
+  
+      
+      console.log(`👤 ${peer.name}: ${matchScore} matches, ${peerCourses.length} total courses`);
+      console.log(`   Peer courses: [${peerCourses.join(', ')}]`);
+      console.log(`   Search courses: [${searchCourses.join(', ')}]`);
+      console.log(`   Matching courses: [${matchingCourses.join(', ')}]`);
+      
+      return peerWithScore;
+    });
+
+    // Sort peers by match score (highest first), then by total courses (highest first)
+    const sortedPeers = peersWithScores.sort((a, b) => {
+      // First sort by match score (descending)
+      if (b.matchScore !== a.matchScore) {
+        return b.matchScore - a.matchScore; // sort by descending order
+      }
+      // If match scores are equal, sort by total courses (descending)
+      return b.totalCourses - a.totalCourses;
+    });
+
+    console.log('🏆 Sorted peers by priority:');
+    sortedPeers.forEach((peer, index) => {
+      console.log(`${index + 1}. ${peer.name} - ${peer.matchScore} matches, ${peer.totalCourses} total courses`);
+    });
+
+    res.json({ 
+      peers: sortedPeers,
+      searchCourses: coursesSeeking,
+      totalPeersFound: sortedPeers.length
+    });
   } catch (err) {
+    console.error('❌ Error in peer search:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });

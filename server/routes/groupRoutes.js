@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const StudyGroup = require('../models/StudyGroup');
 const User = require('../models/User');
+const JoinRequest = require('../models/JoinRequest');
 
 console.log('Group routes loaded!');
 console.log('Available routes:');
@@ -23,7 +24,7 @@ router.post('/create', async (req, res) => {
   console.log('Request headers:', req.headers);
   
   try {
-    const { name, creatorId, course, maxMembers, selectedMembers } = req.body;
+    const { name, creatorId, course, maxMembers, isPublic, selectedMembers } = req.body;
     
     // Validate input
     if (!name || !creatorId || !course || !maxMembers) {
@@ -46,6 +47,7 @@ router.post('/create', async (req, res) => {
       creatorId,
       courses: [course], // Store as array with one course
       maxMembers,
+      isPublic: isPublic !== undefined ? isPublic : true, // Default to public if not specified
       members
     });
     
@@ -149,6 +151,15 @@ router.post('/:id/join', async (req, res) => {
       return res.status(400).json({ message: 'Group is full' });
     }
     
+    // Check if group is public or private
+    if (!group.isPublic) {
+      // For private groups, create a join request instead of joining directly
+      // TODO: Implement join request system
+      return res.status(403).json({ 
+        message: 'This group is private. Join requests are coming soon!' 
+      });
+    }
+    
     // Get user info before adding them (for system message)
     const joiningUser = await User.findById(userId);
     const userName = joiningUser ? joiningUser.name : 'Unknown User';
@@ -193,12 +204,24 @@ router.post('/:id/leave', async (req, res) => {
       return res.status(400).json({ message: 'User is not in this group' });
     }
     
-    // Get user info before removing them (for system message)
+    // Get user info before removing them
     const leavingUser = await User.findById(userId);
     const userName = leavingUser ? leavingUser.name : 'Unknown User';
     
     // Remove user from members
     group.members = group.members.filter(memberId => memberId !== userId);
+    
+    // Clean up any pending join requests from this user for this group
+    try {
+      await JoinRequest.deleteMany({
+        groupId: id,
+        userId: userId,
+        status: 'pending'
+      });
+      console.log(`🧹 Cleaned up pending join requests for user ${userId} in group ${id}`);
+    } catch (cleanupError) {
+      console.error('Error cleaning up join requests:', cleanupError);
+    }
     
     // If the user leaving is the creator, transfer ownership to another member
     if (group.creatorId === userId) {
@@ -206,17 +229,6 @@ router.post('/:id/leave', async (req, res) => {
         // Transfer to the first remaining member
         group.creatorId = group.members[0];
         await group.save();
-        
-        // Send system message about ownership transfer
-        try {
-          const { sendGroupSystemMessage } = require('../firebaseAdmin');
-          const conversationId = await getGroupConversationId(id);
-          if (conversationId) {
-            await sendGroupSystemMessage(conversationId, `${userName} left the group. Ownership transferred to another member.`, 'ownership_transfer');
-          }
-        } catch (firebaseError) {
-          console.log('Firebase system message failed (will log instead):', firebaseError.message);
-        }
         
         res.json({ 
           message: `Left group successfully. Ownership transferred to another member.`, 
@@ -234,17 +246,6 @@ router.post('/:id/leave', async (req, res) => {
       // Regular member leaving
       await group.save();
       
-      // Send system message about member leaving
-      try {
-        const { sendGroupSystemMessage } = require('../firebaseAdmin');
-        const conversationId = await getGroupConversationId(id);
-        if (conversationId) {
-          await sendGroupSystemMessage(conversationId, `${userName} left the group`, 'leave');
-        }
-      } catch (firebaseError) {
-        console.log('Firebase system message failed (will log instead):', firebaseError.message);
-      }
-      
       res.json({ 
         message: 'Left group successfully', 
         group: group 
@@ -255,6 +256,208 @@ router.post('/:id/leave', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
+
+// Get join requests for a group (for group creator)
+router.get('/:id/requests', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const group = await StudyGroup.findById(id);
+    if (!group) {
+      return res.status(404).json({ message: 'Study group not found' });
+    }
+    
+    // Get all pending join requests for this group
+    const requests = await JoinRequest.find({ 
+      groupId: id, 
+      status: 'pending' 
+    });
+    
+    console.log('Found join requests:', requests);
+    
+    res.json({ requests });
+  } catch (err) {
+    console.error('Error getting join requests:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Send a join request
+router.post('/:id/request-join', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    
+    const group = await StudyGroup.findById(id);
+    if (!group) {
+      return res.status(404).json({ message: 'Study group not found' });
+    }
+    
+    if (group.members.includes(userId)) {
+      return res.status(400).json({ message: 'User already in group' });
+    }
+    
+    if (group.members.length >= group.maxMembers) {
+      return res.status(400).json({ message: 'Group is full' });
+    }
+    
+    // Check if there's already a pending request
+    const existingRequest = await JoinRequest.findOne({
+      groupId: id,
+      userId: userId,
+      status: 'pending'
+    });
+    
+    if (existingRequest) {
+      return res.status(400).json({ message: 'Join request already sent' });
+    }
+    
+    // Also check if user was recently in the group and clean up any old requests (specific to each group)
+    const oldRequests = await JoinRequest.find({
+      groupId: id,
+      userId: userId,
+      status: { $in: ['accepted', 'rejected'] }
+    });
+    
+    if (oldRequests.length > 0) {
+      // Clean up old requests to prevent database clutter
+      await JoinRequest.deleteMany({
+        groupId: id,
+        userId: userId,
+        status: { $in: ['accepted', 'rejected'] }
+      });
+      console.log(`🧹 Cleaned up old join requests for user ${userId} in group ${id}`);
+    }
+    
+    // Get user info for the request
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+    
+    // Create new join request
+    const newRequest = new JoinRequest({
+      groupId: id,
+      userId: userId,
+      userName: user.name,
+      userEmail: user.email
+    });
+    
+    await newRequest.save();
+    
+    res.json({ 
+      message: 'Join request sent successfully',
+      request: newRequest,
+      userName: user.name
+    });
+  } catch (err) {
+    console.error('Error sending join request:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+  // Accept a join request
+  router.post('/:id/accept-request/:requestId', async (req, res) => {
+    try {
+      const { id, requestId } = req.params;
+
+      // find group they want to join
+      
+      const group = await StudyGroup.findById(id);
+      if (!group) {
+        return res.status(404).json({ message: 'Study group not found' });
+
+      }
+      // find the join request and make sure it to the right group
+      const request = await JoinRequest.findById(requestId);
+      if (!request || request.groupId !== id) {
+        return res.status(404).json({ message: 'Join request not found' });
+      }
+      // make sure the request is pending
+      if (request.status !== 'pending') {
+        return res.status(400).json({ message: 'Request already processed' });
+      }
+      // make sure group isnt full
+      if (group.members.length >= group.maxMembers) {
+        return res.status(400).json({ message: 'Group is full' });
+      }
+      
+      // Add user to group, and save the group
+      group.members.push(request.userId);
+      await group.save();
+      
+      // marks as accepted after allat if statements
+      await JoinRequest.findByIdAndUpdate(requestId, {
+        status: 'accepted',
+        respondedAt: new Date()
+      });
+      // system message
+      res.json({ 
+        message: 'Join request accepted successfully',
+        group: group
+      });
+    } catch (err) {
+      console.error('Error accepting join request:', err);
+      res.status(500).json({ message: 'Server error', error: err.message });
+    }
+  });
+
+// Reject a join request
+router.post('/:id/reject-request/:requestId', async (req, res) => {
+  try {
+    const { id, requestId } = req.params;
+    
+    const group = await StudyGroup.findById(id);
+    if (!group) {
+      return res.status(404).json({ message: 'Study group not found' });
+    }
+    
+    const request = await JoinRequest.findById(requestId);
+    if (!request || request.groupId !== id) {
+      return res.status(404).json({ message: 'Join request not found' });
+    }
+    
+    if (request.status !== 'pending') {
+      return res.status(400).json({ message: 'Request already processed' });
+    }
+    
+    // Update request status - rejected
+    await JoinRequest.findByIdAndUpdate(requestId, {
+      status: 'rejected',
+      respondedAt: new Date()
+    });
+    
+    res.json({ 
+      message: 'Join request rejected successfully'
+    });
+  } catch (err) {
+    console.error('Error rejecting join request:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Check if user has a pending request for a group
+router.get('/:id/request-status/:userId', async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    
+    const request = await JoinRequest.findOne({
+      groupId: id,
+      userId: userId,
+      status: 'pending'
+    });
+    
+    res.json({ 
+      hasPendingRequest: !!request,
+      request: request
+    });
+  } catch (err) {
+    console.error('Error checking request status:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+
 
 // Get specific group details (MUST BE LAST - catches all other GET requests)
 router.get('/:id', async (req, res) => {
