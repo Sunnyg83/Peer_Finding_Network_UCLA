@@ -74,10 +74,22 @@
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: var(--gradient-bg);
+  background: var(--bg-primary);
   min-height: 100vh;
   color: var(--text-primary);
   transition: all 0.3s ease;
+}
+
+/* Light (yellow) mode: keep everything visible but add a subtle UCLA gold tint */
+[data-theme="light"] body {
+  background: rgba(255, 209, 0, 0.08);
+}
+
+/* Ensure background layers remain transparent in light mode so tint shows through */
+[data-theme="light"] .particle-background,
+[data-theme="light"] .animated-gradient-bg,
+[data-theme="light"] .geometric-overlay {
+  background: transparent !important;
 }
 
 .app {
@@ -120,7 +132,7 @@ body {
   width: 100%;
   height: 100%;
   z-index: -1;
-  background: var(--bg-primary);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -132,10 +144,10 @@ body {
   width: 100%;
   height: 100%;
   z-index: -3;
-  background: linear-gradient(-45deg, #181826, #23233b, #2774ae, #1a1a2e);
+  background: transparent;
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
-  opacity: 0.8;
+  opacity: 0;
 }
 
 @keyframes gradientShift {
@@ -158,10 +170,7 @@ body {
   width: 100%;
   height: 100%;
   z-index: -2;
-  background-image: 
-    radial-gradient(circle at 20% 80%, rgba(39, 116, 174, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 209, 0, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(0, 179, 179, 0.05) 0%, transparent 50%);
+  background: transparent;
   animation: overlayPulse 8s ease-in-out infinite;
 }
 
@@ -801,7 +810,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--gradient-bg);
+  background: transparent;
   transition: all 0.3s ease;
 }
 
@@ -857,7 +866,7 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: var(--gradient-bg);
+  background: transparent;
   animation: fadeIn 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1462,15 +1471,15 @@ body {
   color: white;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 [data-theme="dark"] .landing-container {
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 [data-theme="light"] .landing-container {
-  background: var(--bg-primary);
+  background: transparent;
   color: #ffffff;
 }
 
