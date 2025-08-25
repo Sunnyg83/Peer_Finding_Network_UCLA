@@ -51,7 +51,7 @@ cd ../client && npm install && npm run dev
 
 
 
-## Screenshots
+## Screenshots (MVP version)
 Login page
 ![Login Page](client/screenshots/login.png)
 
