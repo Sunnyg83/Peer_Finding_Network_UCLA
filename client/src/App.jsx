@@ -587,7 +587,7 @@ function App() {
                 loop
                 playsInline
                 preload="metadata"
-                poster="/landing-poster.png"
+                poster="/landing-poster.png" // show the updated poster
               >
                 <source src="/Demovid.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
