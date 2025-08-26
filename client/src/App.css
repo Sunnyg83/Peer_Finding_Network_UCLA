@@ -1,4 +1,3 @@
-
 :root {
   /* Dark theme - css  */
   --bg-primary: #181826; /* almost black */
@@ -2362,5 +2361,174 @@ body {
   position: fixed;       /* lock to viewport */
   inset: 0;              /* top:0; right:0; bottom:0; left:0 */
   z-index: 0;            /* behind content but visible through transparent elements */
-  pointer-events: none;  /* don’t block clicks */
+  pointer-events: none;  /* don't block clicks */
+}
+
+/* Demo Video Section */
+.demo-video-section {
+  background: transparent;
+  color: inherit;
+  padding: 4rem 2rem;
+  text-align: center;
+  backdrop-filter: none;
+  border-radius: 0;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+}
+
+[data-theme="light"] .demo-video-section,
+[data-theme="dark"] .demo-video-section {
+  background: transparent;
+  color: inherit;
+}
+
+.demo-video-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.demo-video-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2rem;
+  background: linear-gradient(45deg, var(--neon-blue), var(--neon-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 10px var(--neon-blue);
+  letter-spacing: 1px;
+}
+
+/* Demo video wrapper transparent, including hover */
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 20px;
+  overflow: hidden;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.video-wrapper:hover {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.demo-video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 18px;
+  background: transparent;
+  filter: brightness(1) contrast(1) saturate(1) !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/* Video controls styling */
+.demo-video::-webkit-media-controls {
+  background: rgba(23, 23, 38, 0.9);
+}
+
+.demo-video::-webkit-media-controls-panel {
+  background: rgba(23, 23, 38, 0.9);
+}
+
+/* Responsive design for video */
+@media (max-width: 768px) {
+  .demo-video-section {
+    padding: 2rem 1rem;
+  }
+  
+  .demo-video-container {
+    padding: 1rem;
+  }
+  
+  .demo-video-title {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .video-wrapper {
+    max-width: 100%;
+    border-radius: 15px;
+  }
+  
+  .demo-video {
+    border-radius: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .demo-video-title {
+    font-size: 1.5rem;
+  }
+  
+  .demo-video-section {
+    padding: 1.5rem 0.5rem;
+  }
+}
+
+/* Demo video white card surround */
+.video-wrapper {
+  background: #ffffff !important;
+  padding: 16px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+  margin: 0 auto !important;
+}
+
+.video-wrapper:hover {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+}
+
+.video-wrapper .demo-video {
+  border-radius: 12px !important;
+  background: #000 !important;
+}
+
+/* Boost apparent brightness and prevent dimming */
+.video-wrapper .demo-video {
+  filter: brightness(1.15) contrast(1.05) saturate(1.1) !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/* Make native controls transparent so no dark overlay appears on hover */
+.demo-video::-webkit-media-controls { 
+  background: transparent !important; 
+}
+.demo-video::-webkit-media-controls-panel { 
+  background: transparent !important; 
+}
+.demo-video::-webkit-media-controls-enclosure { 
+  background-color: transparent !important; 
+}
+
+/* Demo video wrapper: neon blue outline + subtle glow */
+.video-wrapper {
+  background: transparent !important;
+  padding: 8px !important;
+  border-radius: 20px !important;
+  border: 1px solid var(--neon-blue) !important; /* match site neon blue */
+  box-shadow: 0 0 12px var(--neon-blue) !important; /* subtle neon glow */
+  margin: 0 auto !important;
+}
+
+.video-wrapper:hover {
+  background: transparent !important;
+  border: 1px solid var(--neon-blue) !important;
+  box-shadow: 0 0 16px var(--neon-blue) !important;
 }

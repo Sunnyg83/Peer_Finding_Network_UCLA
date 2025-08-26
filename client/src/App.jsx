@@ -548,6 +548,54 @@ function App() {
           </div>
         </motion.section>
 
+        {/* Demo Video Section */}
+        <motion.section 
+          className="demo-video-section"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          viewport={{ once: true }}
+        >
+          <motion.div 
+            className="demo-video-container"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            <motion.h2 
+              className="demo-video-title"
+              initial={{ y: -20, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true }}
+            >
+              See Study Bruins in Action
+            </motion.h2>
+            <motion.div 
+              className="video-wrapper"
+              initial={{ y: 20, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              viewport={{ once: true }}
+            >
+              <video 
+                className="demo-video"
+                controls
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                poster="/dashboard.png"
+              >
+                <source src="/Demovid.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </motion.div>
+          </motion.div>
+        </motion.section>
+
         {/* Features Section */}
         <motion.section 
           id="features-section" 
@@ -836,11 +884,11 @@ function App() {
             setShowBrowseGroupsModal={setShowBrowseGroupsModal}
             availableGroups={availableGroups}
             setAvailableGroups={setAvailableGroups}
-            loadingAvailableGroups={loadingAvailableGroups}
-            setLoadingAvailableGroups={setLoadingAvailableGroups}
-            fetchAvailableGroups={fetchAvailableGroups}
-            joinGroup={joinGroup}
-            leaveGroup={leaveGroup}
+                         loadingAvailableGroups={loadingAvailableGroups}
+             setLoadingAvailableGroups={setLoadingAvailableGroups}
+             fetchAvailableGroups={fetchAvailableGroups}
+             joinGroup={joinGroup}
+             leaveGroup={leaveGroup}
 
           />
         )}
