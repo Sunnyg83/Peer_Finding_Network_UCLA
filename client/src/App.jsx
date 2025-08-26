@@ -585,7 +585,7 @@ function App() {
                 muted
                 playsInline
                 preload="none"
-                poster="/landing-poster.png" // Ensure poster shows until user plays
+                poster="/landing.png" // Ensure poster shows until user plays
               >
                 <source src="/Demovid.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
