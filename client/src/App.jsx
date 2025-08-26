@@ -582,12 +582,10 @@ function App() {
               <video 
                 className="demo-video"
                 controls
-                autoPlay
                 muted
-                loop
                 playsInline
-                preload="metadata"
-                poster="/landing-poster.png" // show the updated poster
+                preload="none"
+                poster="/landing-poster.png" // Ensure poster shows until user plays
               >
                 <source src="/Demovid.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
