@@ -623,6 +623,22 @@ function App() {
         throw new Error(data.message || 'AI matching failed');
       }
 
+      // Build member names list if available (prefer explicit names from response)
+      const namesFromFlatArray = Array.isArray(data.memberNames) ? data.memberNames : null;
+      const namesFromSelected = Array.isArray(data.selectedMemberNames)
+        ? [currentUser.name, ...data.selectedMemberNames]
+        : null;
+      const namesFromObjects = Array.isArray(data.group?.memberNames)
+        ? data.group.memberNames.map(m => m.name || m)
+        : null;
+      const memberNamesForAlert = (namesFromFlatArray && namesFromFlatArray.length)
+        ? namesFromFlatArray
+        : (namesFromSelected && namesFromSelected.length)
+          ? namesFromSelected
+          : (namesFromObjects && namesFromObjects.length)
+            ? namesFromObjects
+            : [];
+
       // Show success message
       if (data.reusedExisting) {
         // Existing group case
@@ -633,6 +649,7 @@ ${data.message}
 📋 Group Details:
    • Name: ${data.group.name}
    • Members: ${data.group.members.length}/${data.group.maxMembers}
+   • Member Names: ${memberNamesForAlert.length ? memberNamesForAlert.join(', ') : 'Names unavailable'}
 
 🤔 AI Reasoning:
 ${data.rationale}
@@ -647,6 +664,7 @@ ${data.message}
 📋 Group Details:
    • Name: ${data.group.name}
    • Members: ${data.group.members.length}/${data.group.maxMembers}
+   • Member Names: ${memberNamesForAlert.length ? memberNamesForAlert.join(', ') : 'Names unavailable'}
 
 🤔 AI Reasoning:
 ${data.rationale}

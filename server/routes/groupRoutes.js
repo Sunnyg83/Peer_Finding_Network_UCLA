@@ -763,11 +763,20 @@ IMPORTANT: Return ONLY the JSON, no other text.`;
         }
         cleanedRationale = cleanedRationale.replace(/ID:\s*[A-Za-z0-9_-]+/g, '').replace(/\s{2,}/g, ' ').trim();
         
+        // Build combined member details including the requester
+        const membersDetailed = [
+          { id: userId, name: user.name },
+          ...selectedMembers.map(id => ({ id, name: idToName[id] || id }))
+        ];
+        const allMemberNames = [user.name, ...selectedMemberNames];
+        
         res.json({
-          message: 'AI study group created successfully!',
+          message: `AI study group created successfully! Members: ${allMemberNames.join(', ')}`,
           group: savedGroup,
           selectedMembers: selectedMembers,
           selectedMemberNames,
+          members: membersDetailed,
+          memberNames: allMemberNames,
           rationale: cleanedRationale,
           createdNew: true,
           shortage: selectedMembers.length < actualDesiredCount,

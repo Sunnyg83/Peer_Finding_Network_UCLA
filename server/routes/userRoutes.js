@@ -89,43 +89,54 @@ router.post('/peers', async (req, res) => {
       });
     }
 
-    // Calculate match score for each peer and sort by priority
+    // Helper: parse "Department 31A" -> { dept: 'DEPARTMENT', number: '31A' }
+    const parseCourse = (raw) => {
+      if (!raw || typeof raw !== 'string') return { dept: '', number: '' };
+      const trimmed = raw.trim().replace(/\s+/g, ' ');
+      const parts = trimmed.split(' ');
+      if (parts.length < 2) return { dept: parts[0]?.toUpperCase() || '', number: '' };
+      const number = parts.pop().toUpperCase();
+      const dept = parts.join(' ').toUpperCase();
+      return { dept, number };
+    };
+
+    // Build normalized sets for quick checks
+    const normalizedSearch = (Array.isArray(coursesSeeking) ? coursesSeeking : []).map(parseCourse);
+    const searchKeySet = new Set(
+      normalizedSearch
+        .filter(sc => sc.dept && sc.number)
+        .map(sc => `${sc.dept} ${sc.number}`)
+    );
+
+    // Calculate match score for each peer and sort by priority (exact dept+number matches only)
     const peersWithScores = allPeers.map(peer => {
-      // Ensure coursesSeeking is an array
       const peerCourses = Array.isArray(peer.coursesSeeking) ? peer.coursesSeeking : [];
-      const searchCourses = Array.isArray(coursesSeeking) ? coursesSeeking : [];
-      
-      // Count how many courses match between the searching user and this peer - find matches
-      const matchingCourses = peerCourses.filter(course => 
-        searchCourses.includes(course)
+      const normalizedPeer = peerCourses.map(parseCourse);
+
+      // Build a unique set of peer course keys
+      const peerKeySet = new Set(
+        normalizedPeer
+          .filter(pc => pc.dept && pc.number)
+          .map(pc => `${pc.dept} ${pc.number}`)
       );
-      
-      // Calculate match score (more matches = higher score)
-      const matchScore = matchingCourses.length;
-      
-      // Find the specific matching courses for display
-      const matchDetails = matchingCourses.map(course => ({
-        course: course,
-        isMatch: true
-      }));
-      
-      // Convert to plain object 
+
+      // Intersection of user's unique exact courses and peer's unique exact courses
+      const exactMatches = Array.from(peerKeySet).filter(key => searchKeySet.has(key));
+
+      // Score is count of unique exact matches; cannot exceed user's unique course count by construction
+      const matchScore = exactMatches.length;
+
+      // Convert to plain object
       const peerData = peer.toObject ? peer.toObject() : peer;
-      
+
       const peerWithScore = {
         ...peerData,
-        matchScore: matchScore,
-        matchingCourses: matchDetails,
+        matchScore,
+        matchingCourses: exactMatches.map(course => ({ course, isMatch: true, type: 'exact' })),
         totalCourses: peerCourses.length
-      }; // scoring data - match score + course details
+      };
 
-  
-      
-      console.log(`👤 ${peer.name}: ${matchScore} matches, ${peerCourses.length} total courses`);
-      console.log(`   Peer courses: [${peerCourses.join(', ')}]`);
-      console.log(`   Search courses: [${searchCourses.join(', ')}]`);
-      console.log(`   Matching courses: [${matchingCourses.join(', ')}]`);
-      
+      console.log(`👤 ${peer.name}: ${matchScore} exact matches, ${peerCourses.length} total courses`);
       return peerWithScore;
     });
 
