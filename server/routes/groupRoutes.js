@@ -613,7 +613,7 @@ router.post('/ai-match', async (req, res) => {
     console.log(` Calling Gemini AI to pick best ${actualDesiredCount} matches from ${candidates.length} candidates...`);
     
     try {
-      // Build the prompt for Gemini
+      // Build Gemini prompt
       const prompt = `You are an AI study group matching system. Analyze the following students and pick the best ${actualDesiredCount} study partners for the requester.
 
 Requester Profile:
@@ -628,7 +628,7 @@ ${candidates.map((c, i) => `${i + 1}. ID: ${c._id}, Name: ${c.name}, Year: ${c.y
 INSTRUCTIONS:
 - Pick the best ${actualDesiredCount} candidates based on compatibility
 - Consider: availability overlap, year similarity, study preferences from bio, or any other personality similarities in the bio
-- Do NOT include any raw IDs in your rationale; refer to people by name only.
+- Do NOT include any raw IDs in your rationale; refer to people by name only. 
 - Return ONLY valid JSON in this exact format:
 {
   "memberIds": ["id1", "id2", "id3"],
