@@ -45,6 +45,13 @@ router.post('/create', async (req, res) => {
     // Create members array (creator + selected members)
     const members = [creatorId, ...(selectedMembers || [])];
     
+    // Validate that member count doesn't exceed maxMembers
+    if (members.length > maxMembers) {
+      return res.status(400).json({ 
+        message: `Cannot create group: ${members.length} members exceeds maximum of ${maxMembers}` 
+      });
+    }
+    
     // Fetch user details for all members
     const memberUsers = await User.find({ _id: { $in: members } });
     const memberNames = memberUsers.map(user => ({
