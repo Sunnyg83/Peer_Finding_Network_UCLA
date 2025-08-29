@@ -821,7 +821,7 @@ ${data.rationale}
                 preload="none"
                 poster="/landing.png" // Ensure poster shows until user plays
               >
-                <source src="/Demovid.mp4" type="video/mp4" />
+                <source src="/BruinStudyOff.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
             </motion.div>
