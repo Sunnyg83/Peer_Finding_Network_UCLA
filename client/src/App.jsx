@@ -126,6 +126,13 @@ function App() {
   const [chatPeer, setChatPeer] = useState(null)
   const [unreadCount, setUnreadCount] = useState(0);
   const [groupUnreadCount, setGroupUnreadCount] = useState(0);
+  
+  // AI Match Modal state
+  const [showAIMatchModal, setShowAIMatchModal] = useState(false);
+  const [aiMatchLoading, setAiMatchLoading] = useState(false);
+  const [aiMatchError, setAiMatchError] = useState(null);
+  const [aiMatchDesiredSize, setAiMatchDesiredSize] = useState(3);
+  const [aiMatchSelectedCourse, setAiMatchSelectedCourse] = useState('');
 
   // Load default from storage
   useEffect(() => {
@@ -389,6 +396,145 @@ function App() {
     }
   };
 
+  // Kick a member from the group (creator only)
+  const kickMember = async (groupId, memberId) => {
+    console.log('🚪 Attempting to kick member:', memberId, 'from group:', groupId);
+    if (!confirm('Are you sure you want to kick this member?')) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/kick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser._id,
+          memberId: memberId
+        })
+      });
+
+      console.log('📡 Kick response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Kick successful:', data);
+        alert('Member kicked successfully');
+        // Refresh groups
+        console.log('🔄 Refreshing user groups...');
+        await fetchUserGroups();
+      } else {
+        const errorData = await response.json();
+        console.log('❌ Kick failed:', errorData);
+        alert(`Failed to kick member: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Error kicking member:', error);
+      alert('Failed to kick member');
+    }
+  };
+
+  // Toggle group visibility (public/private) - creator only
+  const toggleGroupVisibility = async (groupId) => {
+    console.log('🔄 Attempting to toggle visibility for group:', groupId);
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/toggle-visibility`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser._id
+        })
+      });
+
+      console.log('📡 Toggle visibility response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Toggle visibility successful:', data);
+        alert(`Group is now ${data.isPublic ? 'public' : 'private'}`);
+        // Refresh groups
+        console.log('🔄 Refreshing user groups...');
+        await fetchUserGroups();
+      } else {
+        const errorData = await response.json();
+        console.log('❌ Toggle visibility failed:', errorData);
+        alert(`Failed to change visibility: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Error toggling visibility:', error);
+      alert('Failed to change group visibility');
+    }
+  };
+
+  // Delete a study group (creator only)
+  const deleteGroup = async (groupId) => {
+    console.log('🗑️ Attempting to delete group:', groupId);
+    
+    // Double confirmation for destructive action
+    if (!confirm('Are you sure you want to delete this study group? This action cannot be undone and will remove all members from the group.')) {
+      return;
+    }
+    
+    if (!confirm('Final confirmation: This will permanently delete the group and remove all members. Continue?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser._id
+        })
+      });
+
+      console.log('📡 Delete group response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Delete group successful:', data);
+        alert('Study group deleted successfully');
+        // Refresh groups
+        console.log('🔄 Refreshing user groups...');
+        await fetchUserGroups();
+      } else {
+        const errorData = await response.json();
+        console.log('❌ Delete group failed:', errorData);
+        alert(`Failed to delete group: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting group:', error);
+      alert('Failed to delete group');
+    }
+  };
+
+  // Rename a study group (any member can rename)
+  const renameGroup = async (groupId, newName) => {
+    console.log('✏️ Attempting to rename group:', groupId, 'to:', newName);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/groups/${groupId}/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser._id,
+          newName: newName
+        })
+      });
+
+      console.log('📡 Rename group response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Rename group successful:', data);
+        alert(`Group renamed successfully from "${data.oldName}" to "${data.newName}"`);
+        // Refresh groups
+        console.log('🔄 Refreshing user groups...');
+        await fetchUserGroups();
+      } else {
+        const errorData = await response.json();
+        console.log('❌ Rename group failed:', errorData);
+        alert(`Failed to rename group: ${errorData.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Error renaming group:', error);
+      alert('Failed to rename group');
+    }
+  };
+
 
 
   // Fetch available groups for user's courses
@@ -448,6 +594,76 @@ function App() {
       console.error('Error fetching user groups:', error);
     } finally {
       setLoadingGroups(false);
+    }
+  };
+
+  // AI Match function
+  const handleAIMatch = async (courseName, desiredSize) => {
+    if (!currentUser) return;
+    
+    setAiMatchLoading(true);
+    setAiMatchError(null);
+    
+    try {
+      const response = await fetch(`${API_URL}/api/groups/ai-match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId: courseName, // The course name is used as the courseId
+          desiredSize,
+          userId: currentUser._id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'AI matching failed');
+      }
+
+      // Show success message
+      if (data.reusedExisting) {
+        // Existing group case
+        alert(`🤖 AI Group Found!
+
+${data.message}
+
+📋 Group Details:
+   • Name: ${data.group.name}
+   • Members: ${data.group.members.length}/${data.group.maxMembers}
+
+🤔 AI Reasoning:
+${data.rationale}
+
+ℹ️ This group was already created. You are only allowed one AI matching every 2 months per course.`);
+      } else {
+        // New group created case
+        alert(`🤖 AI Study Group created successfully!
+
+${data.message}
+
+📋 Group Details:
+   • Name: ${data.group.name}
+   • Members: ${data.group.members.length}/${data.group.maxMembers}
+
+🤔 AI Reasoning:
+${data.rationale}
+
+ℹ️ You are only allowed one AI matching every 2 months per course.`);
+      }
+      
+      // Refresh user groups
+      await fetchUserGroups();
+      
+      return data;
+    } catch (error) {
+      setAiMatchError(error.message);
+      alert(`❌ AI matching failed: ${error.message}`);
+      throw error;
+    } finally {
+      setAiMatchLoading(false);
     }
   };
 
@@ -882,14 +1098,268 @@ function App() {
             setShowBrowseGroupsModal={setShowBrowseGroupsModal}
             availableGroups={availableGroups}
             setAvailableGroups={setAvailableGroups}
-                         loadingAvailableGroups={loadingAvailableGroups}
-             setLoadingAvailableGroups={setLoadingAvailableGroups}
-             fetchAvailableGroups={fetchAvailableGroups}
-             joinGroup={joinGroup}
-             leaveGroup={leaveGroup}
-
+            loadingAvailableGroups={loadingAvailableGroups}
+            setLoadingAvailableGroups={setLoadingAvailableGroups}
+            fetchAvailableGroups={fetchAvailableGroups}
+            joinGroup={joinGroup}
+            leaveGroup={leaveGroup}
+            showAIMatchModal={showAIMatchModal}
+            setShowAIMatchModal={setShowAIMatchModal}
+            aiMatchLoading={aiMatchLoading}
+            setAiMatchLoading={setAiMatchLoading}
+            aiMatchError={aiMatchError}
+            setAiMatchError={setAiMatchError}
+            aiMatchSelectedCourse={aiMatchSelectedCourse}
+            setAiMatchSelectedCourse={setAiMatchSelectedCourse}
+            aiMatchDesiredSize={aiMatchDesiredSize}
+            setAiMatchDesiredSize={setAiMatchDesiredSize}
+            handleAIMatch={handleAIMatch}
           />
         )}
+
+        {/* AI Match Modal */}
+        {showAIMatchModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }} onClick={() => setShowAIMatchModal(false)}>
+            <div style={{
+              background: 'rgba(23, 23, 38, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '2px solid var(--neon-blue)',
+              borderRadius: '20px',
+              padding: '2rem',
+              width: '90%',
+              maxWidth: '600px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue)'
+            }} onClick={(e) => e.stopPropagation()}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.5rem',
+                borderBottom: '1px solid var(--neon-blue)',
+                paddingBottom: '1rem'
+              }}>
+                <h2 style={{
+                  color: 'var(--neon-blue)',
+                  margin: 0,
+                  fontSize: '1.8rem',
+                  textShadow: '0 0 10px var(--neon-blue)'
+                }}>🤖 AI Study Group Matching</h2>
+                <button style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--neon-blue)',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s ease'
+                }} onClick={() => setShowAIMatchModal(false)}>×</button>
+              </div>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <p style={{
+                  color: 'var(--text-primary)',
+                  marginBottom: '1.5rem',
+                  lineHeight: '1.6',
+                  fontSize: '1rem'
+                }}>
+                  Let AI find the perfect study partners for you based on compatibility, 
+                  availability, and study preferences!
+                </p>
+                
+                <div style={{
+                  background: 'rgba(255, 165, 0, 0.1)',
+                  border: '1px solid #ffa500',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginBottom: '1.5rem'
+                }}>
+                  <p style={{
+                    color: '#ffa500',
+                    margin: '0',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    ⚠️ <strong>Important:</strong> You are only allowed one AI matching every 2 months per course. 
+                    If you already have an AI group for a course, you'll need to wait before creating another one.
+                  </p>
+                </div>
+                
+                {/* Course Selection */}
+                <div className="course-selector" style={{ marginBottom: '24px' }}>
+                  <label htmlFor="course-select" style={{ 
+                    display: 'block', 
+                    color: 'var(--text-primary)', 
+                    marginBottom: '12px', 
+                    fontWeight: '500' 
+                  }}>
+                    Select Course: *
+                  </label>
+                  <select
+                    id="course-select"
+                    value={aiMatchSelectedCourse || ''}
+                    onChange={(e) => setAiMatchSelectedCourse(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '2px solid var(--neon-blue)',
+                      backgroundColor: 'rgba(23, 23, 38, 0.8)',
+                      color: '#e8e8e8',
+                      fontSize: '16px',
+                      outline: 'none',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <option value="">Choose a course...</option>
+                    {currentUser?.coursesSeeking?.map((course, index) => (
+                      <option key={index} value={course}>
+                        {course}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label htmlFor="desired-size" style={{
+                    display: 'block',
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem',
+                    fontWeight: '500'
+                  }}>
+                    Desired Total Size (including yourself): <strong>{aiMatchDesiredSize}</strong>
+                  </label>
+                  <input
+                    type="range"
+                    id="desired-size"
+                    min="2"
+                    max="8"
+                    value={aiMatchDesiredSize}
+                    onChange={(e) => setAiMatchDesiredSize(parseInt(e.target.value))}
+                    style={{
+                      width: '100%',
+                      height: '8px',
+                      borderRadius: '4px',
+                      background: 'rgba(0, 179, 179, 0.2)',
+                      outline: 'none',
+                      accentColor: 'var(--neon-blue)',
+                      marginBottom: '0.5rem'
+                    }}
+                  />
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    color: 'var(--text-secondary)',
+                    fontSize: '0.9rem'
+                  }}>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>7</span>
+                    <span>8</span>
+                  </div>
+                </div>
+                
+                <div style={{
+                  background: 'rgba(0, 179, 179, 0.1)',
+                  border: '1px solid var(--neon-blue)',
+                  borderRadius: '10px',
+                  padding: '1rem',
+                  marginBottom: '1.5rem'
+                }}>
+                  <p style={{
+                    color: 'var(--text-primary)',
+                    margin: '0.3rem 0',
+                    fontSize: '0.9rem'
+                  }}>• <strong>2 people:</strong> Just you and 1 study partner</p>
+                  <p style={{
+                    color: 'var(--text-primary)',
+                    margin: '0.3rem 0',
+                    fontSize: '0.9rem'
+                  }}>• <strong>3-4 people:</strong> Small, focused study group</p>
+                  <p style={{
+                    color: 'var(--text-primary)',
+                    margin: '0.3rem 0',
+                    fontSize: '0.9rem'
+                  }}>• <strong>5-6 people:</strong> Medium group, good for projects</p>
+                  <p style={{
+                    color: 'var(--text-primary)',
+                    margin: '0.3rem 0',
+                    fontSize: '0.9rem'
+                  }}>• <strong>7-8 people:</strong> Larger group, diverse perspectives</p>
+                </div>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                gap: '1rem',
+                justifyContent: 'flex-end'
+              }}>
+                <button style={{
+                  background: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }} onClick={() => setShowAIMatchModal(false)}>
+                  Cancel
+                </button>
+                <button 
+                  style={{
+                    background: 'var(--neon-blue)',
+                    color: 'var(--bg-primary)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 0 10px var(--neon-blue)',
+                    opacity: aiMatchLoading ? 0.7 : 1
+                  }}
+                  onClick={() => {
+                    if (!aiMatchSelectedCourse) {
+                      alert('Please select a course first!');
+                      return;
+                    }
+                    if (aiMatchDesiredSize >= 2) {
+                      // Call the real AI matching function
+                      handleAIMatch(aiMatchSelectedCourse, aiMatchDesiredSize);
+                      setShowAIMatchModal(false);
+                    } else {
+                      alert('Please select a valid group size!');
+                    }
+                  }}
+                  disabled={aiMatchLoading}
+                >
+                  {aiMatchLoading ? '🤖 Finding Matches...' : '🤖 Find AI Matches'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Chat popup modal (Chat + Messages react state vars) */}
         {chatPeer && (
           <ChatPopup
@@ -1787,6 +2257,128 @@ function App() {
                             🚪 Leave Group
                           </button>
                         </div>
+
+                        {/* Rename Group Button - For all members */}
+                        <div style={{
+                          borderTop: '1px solid var(--neon-blue)',
+                          paddingTop: '1rem',
+                          marginTop: '1rem'
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            gap: '0.5rem',
+                            flexWrap: 'wrap',
+                            marginBottom: '1rem'
+                          }}>
+                            <button
+                              onClick={() => {
+                                const newName = prompt(`Enter new name for "${group.name}":`, group.name);
+                                if (newName && newName.trim() !== '' && newName !== group.name) {
+                                  renameGroup(group._id, newName.trim());
+                                }
+                              }}
+                              style={{
+                                background: '#ffa500',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '0.5rem 1rem',
+                                fontSize: '0.9rem',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                boxShadow: '0 0 5px #ffa500'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.background = '#ff8c00';
+                                e.target.style.boxShadow = '0 0 8px #ffa500';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.background = '#ffa500';
+                                e.target.style.boxShadow = '0 0 5px #ffa500';
+                              }}
+                            >
+                              ✏️ Rename Group
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Group Management Section - Only show for group creator */}
+                        {group.creatorId === currentUser._id && (
+                          <div style={{
+                            borderTop: '1px solid var(--neon-blue)',
+                            paddingTop: '1rem',
+                            marginTop: '1rem'
+                          }}>
+                            <h4 style={{
+                              color: 'var(--neon-blue)',
+                              margin: '0 0 0.5rem 0',
+                              fontSize: '1rem'
+                            }}>
+                              🛠️ Group Management
+                            </h4>
+                            
+                            <div style={{
+                              display: 'flex',
+                              gap: '0.5rem',
+                              flexWrap: 'wrap',
+                              marginBottom: '1rem'
+                            }}>
+                              <button
+                                onClick={() => toggleGroupVisibility(group._id)}
+                                style={{
+                                  background: group.isPublic ? '#ff6b6b' : '#4caf50',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  padding: '0.5rem 1rem',
+                                  fontSize: '0.9rem',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  boxShadow: `0 0 5px ${group.isPublic ? '#ff6b6b' : '#4caf50'}`
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.background = group.isPublic ? '#ff5252' : '#45a049';
+                                  e.target.style.boxShadow = `0 0 8px ${group.isPublic ? '#ff6b6b' : '#4caf50'}`;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.background = group.isPublic ? '#ff6b6b' : '#4caf50';
+                                  e.target.style.boxShadow = `0 0 5px ${group.isPublic ? '#ff6b6b' : '#4caf50'}`;
+                                }}
+                              >
+                                {group.isPublic ? '🔒 Make Private' : '🌐 Make Public'}
+                              </button>
+
+                              <button
+                                onClick={() => deleteGroup(group._id)}
+                                style={{
+                                  background: '#dc3545',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  padding: '0.5rem 1rem',
+                                  fontSize: '0.9rem',
+                                  fontWeight: 'bold',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s ease',
+                                  boxShadow: '0 0 5px #dc3545'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.target.style.background = '#c82333';
+                                  e.target.style.boxShadow = '0 0 8px #dc3545';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.target.style.background = '#dc3545';
+                                  e.target.style.boxShadow = '0 0 5px #dc3545';
+                                }}
+                              >
+                                🗑️ Delete Group
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
                         <div style={{
                           display: 'flex',
                           flexWrap: 'wrap',
@@ -1794,16 +2386,54 @@ function App() {
                         }}>
                           {group.memberNames ? (
                             group.memberNames.map((member, memberIndex) => (
-                              <span key={memberIndex} style={{
-                                background: 'rgba(39, 116, 174, 0.3)',
-                                color: '#e8e8e8',
-                                padding: '0.3rem 0.6rem',
-                                borderRadius: '15px',
-                                fontSize: '0.8rem',
-                                border: '1px solid var(--neon-blue)'
+                              <div key={memberIndex} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem'
                               }}>
-                                {member.id === group.creatorId ? '👑 ' : ''}{member.name}
-                              </span>
+                                <span style={{
+                                  background: 'rgba(39, 116, 174, 0.3)',
+                                  color: '#e8e8e8',
+                                  padding: '0.3rem 0.6rem',
+                                  borderRadius: '15px',
+                                  fontSize: '0.8rem',
+                                  border: '1px solid var(--neon-blue)'
+                                }}>
+                                  {member.id === group.creatorId ? '👑 ' : ''}{member.name}
+                                </span>
+                                
+                                {/* Kick button - only show for non-creator members and if current user is creator */}
+                                {group.creatorId === currentUser._id && member.id !== group.creatorId && (
+                                  <button
+                                    onClick={() => kickMember(group._id, member.id)}
+                                    style={{
+                                      background: '#dc3545',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '50%',
+                                      width: '20px',
+                                      height: '20px',
+                                      fontSize: '10px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.background = '#c82333';
+                                      e.target.style.transform = 'scale(1.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.background = '#dc3545';
+                                      e.target.style.transform = 'scale(1)';
+                                    }}
+                                    title="Kick member"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </div>
                             ))
                           ) : (
                             <div style={{
@@ -2317,7 +2947,17 @@ function Dashboard({
   fetchAvailableGroups,
   joinGroup,
   leaveGroup,
-
+  showAIMatchModal,
+  setShowAIMatchModal,
+  aiMatchLoading,
+  setAiMatchLoading,
+  aiMatchError,
+  setAiMatchError,
+  aiMatchSelectedCourse,
+  setAiMatchSelectedCourse,
+  aiMatchDesiredSize,
+  setAiMatchDesiredSize,
+  handleAIMatch
 }) {
   const [peers, setPeers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -2330,6 +2970,8 @@ function Dashboard({
   const [selectedPeers, setSelectedPeers] = useState([])
   const [coursePeers, setCoursePeers] = useState([])
   const [loadingCoursePeers, setLoadingCoursePeers] = useState(false)
+
+
 
   const [groupFormData, setGroupFormData] = useState({
     name: '',
@@ -2596,7 +3238,7 @@ function Dashboard({
               }
               findPeers();
             }} 
-            className="btn-primary"
+            className="btn-cta"
             disabled={loading}
             style={{ 
               flex: '1',  // Take up half the space
@@ -2617,7 +3259,7 @@ function Dashboard({
                 setHasSearched(false);
               }
             }}
-            className="btn-primary"
+            className="btn-cta"
             style={{ 
               flex: '1',  // Take up half the space
               fontSize: '16px',  // Bigger font
@@ -2642,7 +3284,7 @@ function Dashboard({
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <button 
-                className="btn-primary"
+                className="btn-cta"
                 onClick={() => setShowCreateGroupModal(true)}
                 style={{ width: '100%', padding: '15px', fontSize: '16px' }}
               >
@@ -2650,7 +3292,7 @@ function Dashboard({
               </button>
               
               <button 
-                className="btn-primary"
+                className="btn-cta"
                 onClick={() => {
                   console.log('See Existing Groups button clicked!');
                   setShowBrowseGroupsModal(true);
@@ -2667,25 +3309,15 @@ function Dashboard({
               </button>
               
               <button 
-                className="btn-primary"
+                className="btn-cta"
                 disabled={false}
                 style={{
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontSize: '0.85rem'  // Smaller text to fit on one line
                 }}
-                onClick={() => {
-                  alert(`🤖 AI Study Partner Matching - Coming Soon!\n\n` +
-                        `Our AI algorithm will:\n` +
-                        `• Ask for your desired group size\n` +
-                        `• Analyze all available students in your course\n` +
-                        `• Find optimal study partners based on:\n` +
-                        `  - Availability matching\n` +
-                        `  - Academic year similarity\n` +
-                        `  - Study preferences & bio\n` +
-                        `• Create a study group from these optimal partners based on your preferred group size!\n\n` +
-                        `Stay tuned for this intelligent matching feature!`);
-                }}
+                onClick={() => setShowAIMatchModal(true)}
               >
-                🔒 Want Us to Decide? (Coming Soon)
+                🤖 Let AI Find Your Group
               </button>
             </div>
           </div>
@@ -2994,7 +3626,10 @@ function Dashboard({
         {hasSearched && !showStudyGroupOptions && (
           peers.length > 0 ? (
             <div className="peers-list">
-              <h4>Potential Study Partners (Sorted by Most Matches):</h4>
+              <h4>
+                Potential Study Partners<br/>
+                (Sorted by Most Similar Courses):
+              </h4>
               {peers.map((peer, index) => (
                 <div key={index} className="peer-card" style={{ position: 'relative' }}>
                   {/* New Message Indicator */}

@@ -33,6 +33,11 @@ cd ../client && npm install && npm run dev
 - UI: responsive, dark/light mode, smooth animations.
 - Security: bcrypt hashing (12 rounds), secure auth.
 
+### Recent Improvements
+- Dark neon UI: consistent CTA buttons with subtle pulsing glow; improved readability of own chat bubbles (dark blue).
+- Accurate member counts: backend now cleans invalid member IDs and returns `memberNames` with each group fetch.
+- Group management: creator can kick members, toggle public/private, and members can rename groups.
+
 ## API Highlights
 - Users: `/api/users/*` (auth, profile, peers)
 - Groups: `/api/groups/*` (create, list, join, leave)
@@ -42,6 +47,10 @@ cd ../client && npm install && npm run dev
   - `GET /api/groups/course/:course`
   - `POST /api/groups/:id/join`
   - `POST /api/groups/:id/leave`
+  - `POST /api/groups/:id/kick` (creator)
+  - `POST /api/groups/:id/toggle-visibility` (creator)
+  - `POST /api/groups/:id/rename` (member)
+  - `GET  /api/groups/:id` (returns `group` with `memberNames`)
 
 ## Tech Stack
 - Frontend: React (Vite)
