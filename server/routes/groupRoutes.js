@@ -628,6 +628,7 @@ ${candidates.map((c, i) => `${i + 1}. ID: ${c._id}, Name: ${c.name}, Year: ${c.y
 INSTRUCTIONS:
 - Pick the best ${actualDesiredCount} candidates based on compatibility
 - Consider: availability overlap, year similarity, study preferences from bio, or any other personality similarities in the bio
+- Do NOT include any raw IDs in your rationale; refer to people by name only.
 - Return ONLY valid JSON in this exact format:
 {
   "memberIds": ["id1", "id2", "id3"],
@@ -751,11 +752,23 @@ IMPORTANT: Return ONLY the JSON, no other text.`;
         const savedGroup = await newGroup.save();
         console.log(`✅ Created AI group with ${selectedMembers.length + 1} members`);
         
+        // Build ID->Name map for ALL candidates to guarantee 100% substitution
+        const idToName = Object.fromEntries(candidates.map(c => [c._id.toString(), c.name]));
+        const selectedMemberNames = selectedMembers.map(id => idToName[id] || id);
+        
+        // Clean rationale: replace any occurrences of raw IDs with names and strip leftover ID tags
+        let cleanedRationale = rationale || '';
+        for (const [id, name] of Object.entries(idToName)) {
+          try { cleanedRationale = cleanedRationale.split(id).join(name); } catch {}
+        }
+        cleanedRationale = cleanedRationale.replace(/ID:\s*[A-Za-z0-9_-]+/g, '').replace(/\s{2,}/g, ' ').trim();
+        
         res.json({
           message: 'AI study group created successfully!',
           group: savedGroup,
           selectedMembers: selectedMembers,
-          rationale: rationale,
+          selectedMemberNames,
+          rationale: cleanedRationale,
           createdNew: true,
           shortage: selectedMembers.length < actualDesiredCount,
           aiSucceeded: true
