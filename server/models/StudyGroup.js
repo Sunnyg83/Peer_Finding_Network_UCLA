@@ -16,7 +16,7 @@ const studyGroupSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 2,
-    max: 20
+    max: 20 // max group size
   },
   members: [{
     type: String
