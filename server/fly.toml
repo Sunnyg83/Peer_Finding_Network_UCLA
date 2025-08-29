@@ -1,5 +1,5 @@
 app = "peer-finding-network-ucla"
-primary_region = "lax"
+primary_region = "iad"
 
 [build]
   dockerfile = "Dockerfile"
