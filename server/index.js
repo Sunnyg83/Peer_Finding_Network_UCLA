@@ -1,6 +1,7 @@
 // starts the server
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const mongoose = require('mongoose');
@@ -20,6 +21,16 @@ const PORT = process.env.PORT || 5001;
 
 // CORS middleware
 app.use(cors());
+
+// Rate limiting 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 requests per 15 minutes
+  message: 'Too many requests from this IP, please try again later.'
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', limiter);
 
 // json parser
 app.use(express.json({ limit: '10mb' }));
