@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { GoogleLogin } from '@react-oauth/google'
 import './App.css'
 import { API_URL } from './config'
 import { 
@@ -133,6 +134,7 @@ function App() {
   const [aiMatchError, setAiMatchError] = useState(null);
   const [aiMatchDesiredSize, setAiMatchDesiredSize] = useState(3);
   const [aiMatchSelectedCourse, setAiMatchSelectedCourse] = useState('');
+  const [isUclaEmailVerified, setIsUclaEmailVerified] = useState(false);
 
   // Load default from storage
   useEffect(() => {
@@ -140,6 +142,59 @@ function App() {
     setTheme(savedTheme)
     document.documentElement.setAttribute('data-theme', savedTheme)
   }, [])
+
+  // Google OAuth verification handler - just verify UCLA email
+  const handleGoogleLogin = async (credentialResponse) => {
+    try {
+      console.log('🔵 Google verification initiated');
+      
+      // Check if we have a valid credential
+      if (!credentialResponse || !credentialResponse.credential) {
+        console.error('❌ No credential in response');
+        alert('Google verification failed: No credential received');
+        return;
+      }
+
+      // Decode JWT token to get email
+      let userInfo;
+      try {
+        const parts = credentialResponse.credential.split('.');
+        if (parts.length !== 3) {
+          throw new Error('Invalid JWT format');
+        }
+        
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+        const jsonPayload = atob(padded);
+        userInfo = JSON.parse(jsonPayload);
+        console.log('🔍 Decoded user info:', userInfo);
+      } catch (decodeError) {
+        console.error('❌ JWT decode error:', decodeError);
+        alert('Google verification failed: Could not decode token');
+        return;
+      }
+
+      const { email, name } = userInfo;
+      
+      // Check if email is from UCLA
+      if (!email || (!email.endsWith('@g.ucla.edu') && !email.endsWith('@ucla.edu'))) {
+        alert('Only UCLA students are allowed. Please use your @g.ucla.edu or @ucla.edu email.');
+        return;4 
+      }
+
+      // If we get here, they have a valid UCLA email
+      alert(`✅ UCLA email verified: ${email}\n\nYou can now register with this email!`);
+      
+      // Set verified state and switch to register
+      setIsUclaEmailVerified(true);
+      setActiveTab('register');
+      
+    } catch (error) {
+      console.error('❌ Google verification error:', error);
+      alert('Google verification failed: ' + error.message);
+    }
+  };
 
   useEffect(() => {
     if (isLoggedIn && currentUser) {
@@ -959,7 +1014,7 @@ ${data.rationale}
         <motion.button 
           className="theme-toggle" 
           onClick={toggleTheme}
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          title={`Switch to ${theme === 'dark' ? 'yellow' : 'blue'} theme`}
           style={{ 
             position: 'fixed', 
             top: 24, 
@@ -1014,7 +1069,7 @@ ${data.rationale}
       <motion.button 
         className="theme-toggle" 
         onClick={toggleTheme}
-        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        title={`Switch to ${theme === 'dark' ? 'yellow' : 'blue'} theme`}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
@@ -1100,10 +1155,37 @@ ${data.rationale}
                 Register
               </button>
             </div>
+            {/* Google Auth Button */}
+            {activeTab === 'register' && (
+              <div className="google-auth-section">
+                <p style={{ textAlign: 'center', marginBottom: '10px', color: 'var(--text-secondary)' }}>
+                  First, verify your UCLA email with Google to create an account
+                </p>
+                <GoogleLogin
+                  onSuccess={handleGoogleLogin}
+                  onError={() => {
+                    console.log('Verification Failed');
+                  }}
+                  useOneTap
+                  theme="outline"
+                  size="large"
+                  text="continue_with"
+                  shape="rectangular"
+                  width="300"
+                />
+              </div>
+            )}
+            
             {activeTab === 'login' ? (
               <LoginForm setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />
             ) : (
-              <RegisterForm setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} setActiveTab={setActiveTab} />
+              <RegisterForm 
+                setIsLoggedIn={setIsLoggedIn} 
+                setCurrentUser={setCurrentUser} 
+                setActiveTab={setActiveTab}
+                isUclaEmailVerified={isUclaEmailVerified}
+                setIsUclaEmailVerified={setIsUclaEmailVerified}
+              />
             )}
           </div>
         ) : (
@@ -2489,6 +2571,9 @@ function LoginForm({ setIsLoggedIn, setCurrentUser }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      console.log('🔵 Login attempt:', { email: formData.email.toLowerCase(), password: formData.password });
+      console.log('🔵 API URL:', `${API_URL}/api/users/login`);
+      
       const response = await fetch(`${API_URL}/api/users/login`, {
         method: 'POST',
         headers: {
@@ -2500,7 +2585,11 @@ function LoginForm({ setIsLoggedIn, setCurrentUser }) {
         }),
       })
       
+      console.log('🔵 Response status:', response.status);
+      console.log('🔵 Response ok:', response.ok);
+      
       const data = await response.json()
+      console.log('🔵 Response data:', data);
       
       if (response.ok) {
         setIsLoggedIn(true)
@@ -2509,6 +2598,7 @@ function LoginForm({ setIsLoggedIn, setCurrentUser }) {
         alert(data.message)
       }
     } catch (error) {
+      console.error('❌ Login error:', error);
       alert('Login failed. Please try again.')
     }
   }
@@ -2539,15 +2629,36 @@ function LoginForm({ setIsLoggedIn, setCurrentUser }) {
   )
 }
 
-function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
+function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab, isUclaEmailVerified, setIsUclaEmailVerified }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     courses: [{ department: '', courseNumber: '' }],
     availability: '',
-    year: ''
+    year: '',
+    bio: ''
   })
+
+  // Reset form when verification status changes
+  useEffect(() => {
+    if (!isUclaEmailVerified) {
+      setFormData({
+        name: '',
+        email: '',
+        password: '',
+        courses: [{ department: '', courseNumber: '' }],
+        availability: '',
+        year: '',
+        bio: ''
+      })
+    }
+  }, [isUclaEmailVerified])
+
+  // Reset verification status when component mounts
+  useEffect(() => {
+    setIsUclaEmailVerified(false)
+  }, [])
 
   // functions for managing courses
   const addCourse = () => {
@@ -2654,33 +2765,62 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
       <h2>Register</h2>
       <div className="form-group">
         <label>Name:</label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => setFormData({...formData, name: e.target.value})}
-          required
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+            disabled={!isUclaEmailVerified}
+            title={!isUclaEmailVerified ? "Please verify UCLA email with Google" : ""}
+            required
+          />
+          {!isUclaEmailVerified && (
+            <span className="lock-icon">🔒</span>
+          )}
+        </div>
       </div>
       <div className="form-group">
         <label>Email:</label>
-        <input
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})}
-          required
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            disabled={!isUclaEmailVerified}
+            title={!isUclaEmailVerified ? "Please verify UCLA email with Google" : ""}
+            required
+          />
+          {!isUclaEmailVerified && (
+            <span className="lock-icon">🔒</span>
+          )}
+        </div>
       </div>
       <div className="form-group">
         <label>Password:</label>
-        <input
-          type="password"
-          value={formData.password}
-          onChange={(e) => setFormData({...formData, password: e.target.value})}
-          required
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type="password"
+            value={formData.password}
+            onChange={(e) => setFormData({...formData, password: e.target.value})}
+            disabled={!isUclaEmailVerified}
+            title={!isUclaEmailVerified ? "Please verify UCLA email with Google" : ""}
+            required
+          />
+          {!isUclaEmailVerified && (
+            <span className="lock-icon">🔒</span>
+          )}
+        </div>
       </div>
       <div className="form-group">
         <label>Courses Seeking:</label>
+        <div style={{ position: 'relative' }} title={!isUclaEmailVerified ? "Please verify UCLA email with Google" : ""}>
+          {!isUclaEmailVerified && (
+            <span className="lock-icon" style={{ top: '10px' }}>🔒</span>
+          )}
+          <div style={{ 
+            opacity: !isUclaEmailVerified ? 0.5 : 1,
+            pointerEvents: !isUclaEmailVerified ? 'none' : 'auto'
+          }}>
         {formData.courses.map((course, index) => (
           <div key={index} style={{ 
             border: '1px solid #ddd', 
@@ -2718,12 +2858,13 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
                   value={course.department}
                   onChange={(e) => updateCourse(index, 'department', e.target.value)}
                   required
+                  disabled={!isUclaEmailVerified}
                   style={{
                     width: '100%',
                     padding: '8px',
                     borderRadius: '4px',
                     border: '1px solid var(--neon-blue)',
-                    backgroundColor: 'var(--bg-card)',
+                    backgroundColor: 'transparent',
                     color: 'var(--text-primary)',
                     boxShadow: '0 0 5px var(--neon-blue)',
                     outline: 'none'
@@ -2744,7 +2885,7 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
                   onChange={(e) => updateCourse(index, 'courseNumber', e.target.value)}
                   placeholder="e.g., 31, 1A, 101"
                   required
-                  disabled={!course.department}
+                  disabled={!isUclaEmailVerified}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                 />
               </div>
@@ -2770,30 +2911,84 @@ function RegisterForm({ setIsLoggedIn, setCurrentUser, setActiveTab }) {
             + Add Another Course
           </button>
         )}
+          </div>
+        </div>
       </div>
       
 
       <div className="form-group">
         <label>Availability:</label>
-        <input
-          type="text"
-          value={formData.availability}
-          onChange={(e) => setFormData({...formData, availability: e.target.value})}
-          placeholder="e.g., Weekdays 2-5pm, Weekends"
-          required
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={formData.availability}
+            onChange={(e) => setFormData({...formData, availability: e.target.value})}
+            placeholder="e.g., Weekdays 2-5pm, Weekends"
+            disabled={!isUclaEmailVerified}
+            title={!isUclaEmailVerified ? "Please verify UCLA email with Google" : ""}
+            required
+          />
+          {!isUclaEmailVerified && (
+            <span className="lock-icon">🔒</span>
+          )}
+        </div>
       </div>
       <div className="form-group">
         <label>Year in College:</label>
-        <input
-          type="text"
-          value={formData.year}
-          onChange={(e) => setFormData({...formData, year: e.target.value})}
-          placeholder="e.g., Freshman, Sophomore, Junior, Senior"
-          required
-        />
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={formData.year}
+            onChange={(e) => setFormData({...formData, year: e.target.value})}
+            placeholder="e.g., Freshman, Sophomore, Junior, Senior"
+            disabled={!isUclaEmailVerified}
+            title={!isUclaEmailVerified ? "Please verify UCLA email with Google" : ""}
+            required
+          />
+          {!isUclaEmailVerified && (
+            <span className="lock-icon">🔒</span>
+          )}
+        </div>
       </div>
-      <button type="submit" className="btn-primary">Register</button>
+      
+      <div className="form-group">
+        <label>Bio (optional):</label>
+        <div style={{ position: 'relative' }}>
+          <textarea
+            rows="3"
+            value={formData.bio}
+            onChange={(e) => setFormData({...formData, bio: e.target.value})}
+            placeholder="Tell others about yourself, your study style, goals, interests..."
+            disabled={!isUclaEmailVerified}
+            title={!isUclaEmailVerified ? "Please verify UCLA email with Google" : ""}
+            style={{ 
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '14px',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+              minHeight: '80px',
+              opacity: !isUclaEmailVerified ? 0.5 : 1,
+              pointerEvents: !isUclaEmailVerified ? 'none' : 'auto',
+              backgroundColor: !isUclaEmailVerified ? '#f5f5f5' : 'transparent',
+              color: !isUclaEmailVerified ? '#999' : 'inherit'
+            }}
+          />
+          {!isUclaEmailVerified && (
+            <span className="lock-icon" style={{ top: '10px' }}>🔒</span>
+          )}
+        </div>
+      </div>
+      <button 
+        type="submit" 
+        className="btn-primary"
+        disabled={!isUclaEmailVerified}
+        title={!isUclaEmailVerified ? "Please verify UCLA email above with Google" : ""}
+      >
+        {!isUclaEmailVerified ? "Verify UCLA Email First" : "Register"}
+      </button>
     </form>
   )
 }
@@ -3222,10 +3417,23 @@ function Dashboard({
               </div>
             </div>
             {currentUser?.bio && (
-              <div style={{ margin: '8px 0', color: '#333', whiteSpace: 'pre-line' }}>
-                {expandSelfBio || currentUser.bio.length <= 160
-                  ? currentUser.bio
-                  : `${currentUser.bio.slice(0, 160)}...`}
+              <div style={{ margin: '8px 0', color: '#ffffff', whiteSpace: 'pre-line' }}>
+                <span style={{ 
+                  background: '#ffffff', 
+                  color: '#2774ae', 
+                  padding: '2px 6px', 
+                  borderRadius: '4px', 
+                  fontSize: '12px', 
+                  fontWeight: 'bold',
+                  marginRight: '8px'
+                }}>
+                  Bio:
+                </span>
+                <span style={{ color: '#ffffff' }}>
+                  {expandSelfBio || currentUser.bio.length <= 160
+                    ? currentUser.bio
+                    : `${currentUser.bio.slice(0, 160)}...`}
+                </span>
                 {currentUser.bio.length > 160 && (
                   <button
                     type="button"
@@ -3660,10 +3868,23 @@ function Dashboard({
                   )}
                   
                   {peer.bio && (
-                    <div style={{ margin: 0, marginBottom: '10px', color: '#111', whiteSpace: 'pre-line' }}>
-                      {(expandedBios[peer._id] || peer.bio.length <= 160)
-                        ? peer.bio
-                        : `${peer.bio.slice(0, 160)}...`}
+                    <div style={{ margin: 0, marginBottom: '10px', color: '#ffffff', whiteSpace: 'pre-line' }}>
+                      <span style={{ 
+                        background: '#ffffff', 
+                        color: '#2774ae', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px', 
+                        fontSize: '12px', 
+                        fontWeight: 'bold',
+                        marginRight: '8px'
+                      }}>
+                        Bio:
+                      </span>
+                      <span style={{ color: '#ffffff' }}>
+                        {(expandedBios[peer._id] || peer.bio.length <= 160)
+                          ? peer.bio
+                          : `${peer.bio.slice(0, 160)}...`}
+                      </span>
                       {peer.bio.length > 160 && (
                         <button
                           type="button"
@@ -3931,12 +4152,13 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
                   value={course.department}
                   onChange={(e) => updateCourse(index, 'department', e.target.value)}
                   required
+                  disabled={!isUclaEmailVerified}
                   style={{
                     width: '100%',
                     padding: '8px',
                     borderRadius: '4px',
                     border: '1px solid var(--neon-blue)',
-                    backgroundColor: 'var(--bg-card)',
+                    backgroundColor: 'transparent',
                     color: 'var(--text-primary)',
                     boxShadow: '0 0 5px var(--neon-blue)',
                     outline: 'none'
@@ -3957,7 +4179,7 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
                   onChange={(e) => updateCourse(index, 'courseNumber', e.target.value)}
                   placeholder="e.g., 31, 1A, 101"
                   required
-                  disabled={!course.department}
+                  disabled={!isUclaEmailVerified}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                 />
               </div>

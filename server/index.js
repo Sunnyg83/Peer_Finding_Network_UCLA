@@ -45,10 +45,13 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
 // import user routes
+console.log('Loading user routes...');
 const userRoutes = require('./routes/userRoutes');
+console.log('User routes loaded successfully!');
 
 // use user routes
 app.use('/api/users', userRoutes);
+console.log('User routes registered at /api/users');
 
 const groupRoutes = require('./routes/groupRoutes');
 console.log('Registering group routes at /api/groups');

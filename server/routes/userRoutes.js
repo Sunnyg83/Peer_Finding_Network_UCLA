@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const multer = require('multer');
 const AWS = require('aws-sdk');
+const jwt = require('jsonwebtoken');
 
 
 
@@ -49,7 +50,13 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid email or password. Please try again.' });
     }
     
-    // Compare password using bcrypt
+    // allow test user1 and user2
+    if (email === 'test1@ucla.edu' || email === 'test2@ucla.edu') {
+      console.log('🧪 Test user login:', email);
+      return res.json({ message: 'Login successful!', user });
+    }
+    
+    // Compare password using bcrypt for regular users
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Invalid email or password. Please try again.' });
@@ -58,6 +65,50 @@ router.post('/login', async (req, res) => {
     res.json({ message: 'Login successful!', user });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
+// Google OAuth signin endpoint
+router.post('/signin', async (req, res) => {
+  try {
+    const { email, googleId, name, picture } = req.body;
+    
+    console.log('🔵 Google signin request:', { email, googleId, name });
+    
+    // Validate email domain
+    if (!email.endsWith('@g.ucla.edu') && !email.endsWith('@ucla.edu')) {
+      return res.status(400).json({ message: 'Only UCLA students are allowed. Please use your @g.ucla.edu or @ucla.edu email.' });
+    }
+    
+    // Find or create user
+    const user = await User.findOrCreateGoogleUser(email, googleId, name, picture);
+    
+    // Create JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+    
+    console.log('✅ Google signin successful for:', user.email);
+    
+    res.json({ 
+      message: 'Login successful!', 
+      token,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        coursesSeeking: user.coursesSeeking,
+        availability: user.availability,
+        year: user.year,
+        imageUrl: user.imageUrl,
+        bio: user.bio
+      }
+    });
+  } catch (error) {
+    console.error('Google signin error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

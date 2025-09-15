@@ -32,6 +32,7 @@ cd ../client && npm install && npm run dev
 - Profile: edit details, courses, availability; upload avatar (AWS S3).
 - UI: responsive, dark/light mode, smooth animations.
 - Security: bcrypt hashing (12 rounds), secure auth.
+- **OAuth Verification: UCLA students only** - Google OAuth integration to verify UCLA email addresses for exclusive access.
 
 ### Recent Improvements
 - Dark neon UI: consistent CTA buttons with subtle pulsing glow; improved readability of own chat bubbles (dark blue).
