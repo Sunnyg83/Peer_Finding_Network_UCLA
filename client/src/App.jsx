@@ -643,7 +643,9 @@ function App() {
       const response = await fetch(`${API_URL}/api/groups/user/${currentUser._id}`);
       if (response.ok) {
         const data = await response.json();
-        setUserGroups(data.groups);
+        // Filter out hidden groups (like AI analysis tracking records)
+        const visibleGroups = data.groups.filter(group => !group.isHidden);
+        setUserGroups(visibleGroups);
       }
     } catch (error) {
       console.error('Error fetching user groups:', error);
@@ -695,7 +697,38 @@ function App() {
             : [];
 
       // Show success message
-      if (data.reusedExisting) {
+      if (data.noMatches) {
+        if (data.noOtherStudents) {
+          // No other students enrolled - no API call used
+          alert(`🤖 AI Analysis Complete
+
+${data.message}
+
+🤔 AI Reasoning:
+${data.rationale}
+
+💡 Suggestions:
+   • Check back later as more students join
+   • Create a group manually and invite others
+
+ℹ️ You can try AI matching again anytime.`);
+        } else {
+          // AI found no compatible matches - API call was used
+          alert(`🤖 AI Analysis Complete
+
+${data.message}
+
+🤔 AI Reasoning:
+${data.rationale}
+
+💡 Suggestions:
+   • Try adjusting your availability preferences
+   • Check back later as more students join
+   • Create a group manually and invite others
+
+ℹ️ You can try AI matching again in 60 days.`);
+        }
+      } else if (data.reusedExisting) {
         // Existing group case
         alert(`🤖 AI Group Found!
 
@@ -727,8 +760,10 @@ ${data.rationale}
 ℹ️ You are only allowed one AI matching every 2 months per course.`);
       }
       
-      // Refresh user groups
-      await fetchUserGroups();
+      // Refresh user groups if a group was created OR if an AI analysis was recorded
+      if (data.createdNew || data.aiSucceeded) {
+        await fetchUserGroups();
+      }
       
       return data;
     } catch (error) {
@@ -1286,7 +1321,7 @@ ${data.rationale}
                   border: '1px solid #ffa500',
                   borderRadius: '8px',
                   padding: '12px',
-                  marginBottom: '1.5rem'
+                  marginBottom: '1rem'
                 }}>
                   <p style={{
                     color: '#ffa500',
@@ -1296,6 +1331,24 @@ ${data.rationale}
                   }}>
                     ⚠️ <strong>Important:</strong> You are only allowed one AI matching every 2 months per course. 
                     If you already have an AI group for a course, you'll need to wait before creating another one.
+                  </p>
+                </div>
+                
+                <div style={{
+                  background: 'rgba(255, 0, 0, 0.1)',
+                  border: '1px solid #ff6b6b',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginBottom: '1.5rem'
+                }}>
+                  <p style={{
+                    color: '#ff6b6b',
+                    margin: '0',
+                    fontSize: '0.9rem',
+                    fontWeight: '500'
+                  }}>
+                    🚨 <strong>Warning:</strong> AI matching uses API calls and counts against your limit even if no matches are found. 
+                    Make sure other students are enrolled in your course first by checking the find peers button!
                   </p>
                 </div>
                 
@@ -3942,6 +3995,9 @@ function Dashboard({
 }
 
 function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeers, clearPeers }) {
+  // Since user is already logged in, UCLA email is verified
+  const isUclaEmailVerified = true;
+  
   // Convert existing coursesSeeking array to the new format { department, courseNumber }
   // remember user courses so render original courses in edit profile form
   const convertExistingCourses = (coursesArray) => {
@@ -4057,12 +4113,12 @@ function EditProfileForm({ currentUser, setCurrentUser, setEditMode, refreshPeer
       
       // Upload image if selected
       if (selectedImage) {
-        const formData = new FormData();
-        formData.append('image', selectedImage);
+        const uploadFormData = new FormData();
+        uploadFormData.append('image', selectedImage);
         
         const uploadResponse = await fetch(`${API_URL}/api/users/upload-image`, {
           method: 'POST',
-          body: formData
+          body: uploadFormData
         });
         
         if (uploadResponse.ok) {

@@ -6,8 +6,16 @@ const JoinRequest = require('../models/JoinRequest');
 
 // Gemini AI setup
 const { GoogleGenerativeAI } = require('@google/generative-ai'); // library to use the API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // client - access to the API
-const geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // which model to use
+
+// Check if Gemini API key is available
+let genAI, geminiModel;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // client - access to the API
+  geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // which model to use
+  console.log('✅ Gemini AI configured');
+} else {
+  console.log('⚠️  GEMINI_API_KEY not found - AI matching will be disabled');
+}
 
 console.log('Group routes loaded!');
 console.log('Available routes:');
@@ -529,6 +537,15 @@ router.post('/ai-match', async (req, res) => {
       });
     }
     
+    // Check if Gemini AI is available
+    if (!geminiModel) {
+      return res.status(503).json({
+        message: 'AI matching service is currently unavailable. Please create a group manually.',
+        error: 'Gemini API key not configured',
+        aiFailed: true
+      });
+    }
+    
     // Validate user exists and is enrolled in this course
     const user = await User.findById(userId);
     if (!user) {
@@ -586,31 +603,20 @@ router.post('/ai-match', async (req, res) => {
     
     console.log(`Found ${candidates.length} potential candidates`);
     
-    // Handle empty pool case
+    // Handle empty pool case - no other students enrolled
     if (candidates.length === 0) {
       console.log(`No candidates found for course ${courseId}`);
       
-      // Create group with just the requester
-      const soloGroup = new StudyGroup({
-        name: `AI Generated Group - ${courseId}`,
-        creatorId: userId,
-        courseId: courseId,
-        members: [userId],
-        maxMembers: 1, // Only 1 person available (themselves)
-        source: 'ai',
-        shortage: true,
-        rationale: 'No other students enrolled in this course',
-        eligibleAfter: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 60 days from now in milliseconds
-      });
-      
-      const savedSoloGroup = await soloGroup.save();
-      console.log(`✅ Created solo group for user ${userId}`);
-      
+      // No group created - just return message (no API call used, so no limit count)
       return res.json({
-        message: 'No other students enrolled in this course',
-        group: savedSoloGroup,
-        shortage: true,
-        createdNew: true
+        message: 'No other students enrolled in this course. Try again when more students join!',
+        rationale: 'No other students are currently enrolled in this course',
+        selectedMembers: [],
+        memberNames: [],
+        createdNew: false,
+        aiSucceeded: true,
+        noMatches: true,
+        noOtherStudents: true // Special flag for empty pool case
       });
     }
     
@@ -732,18 +738,34 @@ IMPORTANT: Return ONLY the JSON, no other text.`;
       
       if (validSelectedMembers.length === 0) {
         console.log(`AI returned no valid member IDs`);
-        console.log(`Validation failed - AI IDs don't match candidate pool`);
-        aiSucceeded = false;
-        selectedMembers = [];
-        rationale = 'AI failed to return valid member IDs';
+        // Check if this is a valid "no matches" result or an actual error
+        if (selectedMembers.length === 0) {
+          // AI correctly determined no good matches
+          console.log(`✅ AI correctly determined no good matches`);
+          aiSucceeded = true; // This is a successful AI response
+          selectedMembers = [];
+          // Keep the original rationale from AI
+        } else {
+          // AI returned IDs but they don't match candidate pool - this is an error
+          console.log(`❌ Validation failed - AI IDs don't match candidate pool`);
+          aiSucceeded = false;
+          selectedMembers = [];
+          rationale = 'AI failed to return valid member IDs';
+        }
       } else {
         // Update selectedMembers to only include valid ones
         selectedMembers = validSelectedMembers;
         console.log(`✅ Successfully validated ${selectedMembers.length} members`);
       }
       
-      // Only create group if AI actually succeeded
-      if (aiSucceeded && selectedMembers.length > 0) {
+      // Handle AI response
+      if (aiSucceeded) {
+        // Check if AI only selected the user themselves (no real matches)
+        const onlyUserSelected = selectedMembers.length === 0 || 
+          (selectedMembers.length === 1 && selectedMembers[0] === userId);
+        
+        if (selectedMembers.length > 0 && !onlyUserSelected) {
+          // AI found real matches (other people) - create group
         const newGroup = new StudyGroup({
           name: `AI Generated Group - ${courseId}`,
           creatorId: userId,
@@ -789,6 +811,36 @@ IMPORTANT: Return ONLY the JSON, no other text.`;
           shortage: selectedMembers.length < actualDesiredCount,
           aiSucceeded: true
         });
+        } else {
+          // AI succeeded but found no real matches (either no matches or only user themselves)
+          console.log(`✅ AI successfully analyzed but found no compatible study partners`);
+          
+          // Create tracking record to enforce cooldown (API was used, so count against limit)
+          const trackingRecord = new StudyGroup({
+            name: `AI Analysis - ${courseId}`,
+            creatorId: userId,
+            courseId: courseId,
+            members: [userId],
+            maxMembers: 1,
+            source: 'ai',
+            isHidden: true, // Mark as hidden so it doesn't show in groups list
+            rationale: rationale,
+            eligibleAfter: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) // 60 days from now
+          });
+          
+          await trackingRecord.save();
+          console.log(`✅ Recorded AI analysis attempt for cooldown tracking`);
+          
+          return res.json({
+            message: 'AI analysis complete - no compatible study partners found',
+            rationale: rationale,
+            selectedMembers: [],
+            memberNames: [],
+            createdNew: false,
+            aiSucceeded: true,
+            noMatches: true
+          });
+        }
       } else {
         // AI failed - return error instead of creating group
         res.status(500).json({

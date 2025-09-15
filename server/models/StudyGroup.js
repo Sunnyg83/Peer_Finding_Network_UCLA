@@ -50,6 +50,10 @@ const studyGroupSchema = new mongoose.Schema({
   shortage: {
     type: Boolean,
     default: false
+  },
+  isHidden: {
+    type: Boolean,
+    default: false
   }
 });
 
